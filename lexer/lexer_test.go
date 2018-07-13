@@ -20,6 +20,8 @@ func TestNext(t *testing.T) {
 			break
 		}
 	}
+	tok := l.Next()
+	t.Logf("tok: %v", tok)
 }
 
 func BenchmarkNext(b *testing.B) {
