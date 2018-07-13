@@ -1,7 +1,6 @@
 package lexer_test
 
 import (
-	"io"
 	"os"
 	"strings"
 	"testing"
@@ -50,11 +49,10 @@ func BenchmarkNext(b *testing.B) {
 	// }
 	// r := bytes.NewReader(data)
 
+	l := lexer.New(r)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		r.Seek(0, io.SeekStart)
-		l := lexer.New(r)
 		l.Reset()
 		for {
 			tok := l.Next()

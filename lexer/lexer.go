@@ -74,6 +74,9 @@ func New(r io.Reader) *Lexer {
 	return l
 }
 
+// Reset resets the lexer to the start of the input stream. It will panic if
+// the source reader is not an io.Seeker.
+//
 func (l *Lexer) Reset() {
 	l.queue.count = 0
 	l.queue.head = 0
