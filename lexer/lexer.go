@@ -10,7 +10,7 @@ import (
 	"github.com/db47h/monkey/token"
 )
 
-const bufferSize = 10
+const bufferSize = 32768
 
 // queue is a FIFO queue.
 //
@@ -55,20 +55,18 @@ type Lexer struct {
 	line int
 	pos  int
 
-	Copies int
-	Reads  int
-
 	// FSM state
 	cs, ts, te, act int
 	data            []byte
-	bufSz           int
+	sz              int // size of unprocessed data
 }
 
 // New returns a new lexer for the given io.Reader.
 //
 func New(r io.Reader) *Lexer {
 	l := &Lexer{
-		r: r,
+		r:    r,
+		data: make([]byte, bufferSize),
 	}
 	l.init()
 	return l
@@ -83,9 +81,7 @@ func (l *Lexer) Reset() {
 	l.queue.tail = 0
 	l.line = 0
 	l.pos = 0
-	l.Copies = 0
-	l.Reads = 0
-	l.bufSz = 0
+	l.sz = 0
 
 	r := l.r.(io.Seeker)
 	r.Seek(0, io.SeekStart)
@@ -106,15 +102,11 @@ func (l *Lexer) newline(pos int) {
 
 func (l *Lexer) updateBuffer() (p, pe, eof int, err error) {
 	var n int
-	if l.data == nil {
-		l.data = make([]byte, bufferSize)
-	}
-	if l.bufSz >= len(l.data) {
-		return l.bufSz, l.bufSz, l.bufSz, errors.New("buffer overrun")
+	if l.sz >= len(l.data) {
+		return l.sz, l.sz, l.sz, errors.New("buffer overrun")
 	}
 	for {
-		n, err = l.r.Read(l.data[l.bufSz:])
-		l.Reads++
+		n, err = l.r.Read(l.data[l.sz:])
 		if n != 0 || err != nil {
 			break
 		}
@@ -125,7 +117,7 @@ func (l *Lexer) updateBuffer() (p, pe, eof int, err error) {
 		eof = pe
 	}
 
-	return l.bufSz, l.bufSz + n, eof, err
+	return l.sz, l.sz + n, eof, err
 }
 
 func (l *Lexer) shiftBuffer(p, pe int) {
@@ -135,18 +127,13 @@ func (l *Lexer) shiftBuffer(p, pe int) {
 	}
 
 	if l.ts == 0 {
-		l.bufSz = 0
+		l.sz = 0
 		l.pos += p
 	} else {
-		l.Copies++
 		l.pos += l.ts
-		l.bufSz = pe - l.ts
+		l.sz = pe - l.ts
 		copy(l.data[:], l.data[l.ts:pe])
 		l.te -= l.ts
 		l.ts = 0
 	}
-}
-
-func (l *Lexer) QSize() int {
-	return len(l.items)
 }
