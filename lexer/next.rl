@@ -13,7 +13,7 @@ import (
     # alphtype rune;
     # access l.;
 
-	newline = '\n' @{curline += 1;};
+	newline = '\n' @{ l.newline(p) };
 	any_count_line = any | newline;
 
 	# Consume a C comment.
@@ -99,7 +99,6 @@ func (l *Lexer) run()  {
     var have int
     var data [10]byte
 
-    curline := 0
     done := false
 
     for !done {

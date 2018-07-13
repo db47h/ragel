@@ -48,7 +48,6 @@ func (l *Lexer) run()  {
     var have int
     var data [10]byte
 
-    curline := 0
     done := false
 
     for !done {
@@ -79,7 +78,7 @@ func (l *Lexer) run()  {
         }
 
         
-//line next.go:83
+//line next.go:82
 	{
 	if p == pe {
 		goto _test_eof
@@ -146,7 +145,7 @@ p = (te) - 1
 	goto st10
 tr10:
 //line next.rl:16
-curline += 1;
+ l.newline(p) 
 //line next.rl:60
 te = p+1
 
@@ -165,7 +164,7 @@ te = p+1
 	goto st10
 tr19:
 //line next.rl:16
-curline += 1;
+ l.newline(p) 
 //line next.rl:55
 te = p+1
 
@@ -233,7 +232,7 @@ ts = 0
 //line NONE:1
 ts = p
 
-//line next.go:237
+//line next.go:236
 		switch data[p] {
 		case 10:
 			goto tr19
@@ -281,14 +280,14 @@ ts = p
 		goto tr18
 tr1:
 //line next.rl:16
-curline += 1;
+ l.newline(p) 
 	goto st1
 	st1:
 		if p++; p == pe {
 			goto _test_eof1
 		}
 	st_case_1:
-//line next.go:292
+//line next.go:291
 		switch data[p] {
 		case 10:
 			goto tr1
@@ -309,14 +308,14 @@ curline += 1;
 		goto st1
 tr5:
 //line next.rl:16
-curline += 1;
+ l.newline(p) 
 	goto st3
 	st3:
 		if p++; p == pe {
 			goto _test_eof3
 		}
 	st_case_3:
-//line next.go:320
+//line next.go:319
 		switch data[p] {
 		case 10:
 			goto tr5
@@ -345,7 +344,7 @@ te = p+1
 			goto _test_eof11
 		}
 	st_case_11:
-//line next.go:349
+//line next.go:348
 		switch data[p] {
 		case 42:
 			goto tr26
@@ -372,7 +371,7 @@ te = p+1
 			goto _test_eof12
 		}
 	st_case_12:
-//line next.go:376
+//line next.go:375
 		switch data[p] {
 		case 46:
 			goto st6
@@ -411,7 +410,7 @@ te = p+1
 			goto _test_eof14
 		}
 	st_case_14:
-//line next.go:415
+//line next.go:414
 		if data[p] == 46 {
 			goto st6
 		}
@@ -478,7 +477,7 @@ te = p+1
 		goto tr32
 tr15:
 //line next.rl:16
-curline += 1;
+ l.newline(p) 
 	goto st8
 	st8:
 //line NONE:1
@@ -488,7 +487,7 @@ ts = 0
 			goto _test_eof8
 		}
 	st_case_8:
-//line next.go:492
+//line next.go:491
 		switch data[p] {
 		case 10:
 			goto tr15
@@ -519,7 +518,7 @@ tr17:
 			goto _test_eof17
 		}
 	st_case_17:
-//line next.go:523
+//line next.go:522
 		goto st0
 st_case_0:
 	st0:
@@ -571,7 +570,7 @@ st_case_0:
 	_out: {}
 	}
 
-//line next.rl:133
+//line next.rl:132
 
         if cs == monkey_error {
             l.emit(p, token.Error, errors.New("parse error"))

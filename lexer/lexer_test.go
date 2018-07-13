@@ -10,8 +10,8 @@ import (
 )
 
 func TestNext(t *testing.T) {
-	input := `a = 4; ccc := xyz + 17
-`
+	input := "a = 4;\nccc := xyz + 17\n"
+
 	l := lexer.New(strings.NewReader(input))
 	for {
 		tok := l.Next()
