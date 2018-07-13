@@ -11,7 +11,7 @@ import (
     machine monkey;
 
     # alphtype rune;
-    # access l.;
+    access l.;
 
 	newline = '\n' @{ l.newline(p) };
 	any_count_line = any | newline;
@@ -30,25 +30,25 @@ import (
 	# Symbols. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving dump the symbol.
 	( punct - [_'"] ) {
-		l.emit(ts, token.Symbol, data[ts]);
+		l.emit(l.ts, token.Symbol, l.data[l.ts]);
 	};
 
 	# Identifier. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving, dump the identifier.
 	alpha_u alnum_u* {
-        l.emit(ts, token.Ident, string(data[ts:te]))
+        l.emit(l.ts, token.Ident, string(l.data[l.ts:l.te]))
 	};
 
 	# Single Quote.
 	sliteralChar = [^'\\] | newline | ( '\\' . any_count_line );
 	'\'' . sliteralChar* . '\'' {
-        l.emit(ts, token.Char, string(data[ts:te]))
+        l.emit(l.ts, token.Char, string(l.data[l.ts:l.te]))
 	};
 
 	# Double Quote.
 	dliteralChar = [^"\\] | newline | ( '\\' any_count_line );
 	'"' . dliteralChar* . '"' {
-        l.emit(ts, token.String, string(data[ts:te]))
+        l.emit(l.ts, token.String, string(l.data[l.ts:l.te]))
 	};
 
 	# Whitespace is standard ws, newlines and control codes.
@@ -64,19 +64,19 @@ import (
 	# Match an integer. We don't bother clearing the buf or filling it.
 	# The float machine overlaps with int and it will do it.
 	digit+ {
-        l.emit(ts, token.Int, string(data[ts:te]))
+        l.emit(l.ts, token.Int, string(l.data[l.ts:l.te]))
 	};
 
 	# Match a float. Upon entering the machine clear the buf, buffer
 	# characters on every trans and dump the float upon leaving.
 	digit+ '.' digit+ {
-        l.emit(ts, token.Float, string(data[ts:te]))
+        l.emit(l.ts, token.Float, string(l.data[l.ts:l.te]))
 	};
 
 	# Match a hex. Upon entering the hex part, clear the buf, buffer characters
 	# on every trans and dump the hex on leaving transitions.
 	'0x' xdigit+ {
-        l.emit(ts, token.Int, string(data[ts:te]))
+        l.emit(l.ts, token.Int, string(l.data[l.ts:l.te]))
 	};
 
 	*|;
@@ -85,35 +85,30 @@ import (
 %%write data nofinal;
 
 func (l *Lexer) init() {
-    go l.run()
+    %%write init;
 }
 
 
-func (l *Lexer) run()  {
-    var cs, act, ts, te int
-
-    %%write init;
-
-    _ = act
-
-    var have int
-    var data [10]byte
-
-    done := false
-
-    for !done {
-        var p, pe, n, eof int
-        var err error
+// Next returns the next token in the input stream.
+//
+func (l *Lexer) Next() token.Token {
+    for !l.done && len(l.tokens) == 0 {
+        var (
+            p, pe, eof int
+            n int
+            err error
+        )
 
         eof = -1
-        p = have
+        p = l.bufSz
 
-        if have >= len(data) {
+        if l.bufSz >= len(l.data) {
+            l.done = true
             l.emit(p, token.Error, errors.New("buffer overrun"))
-            return
+            break
         }
         for {
-            n, err = l.r.Read(data[have:])
+            n, err = l.r.Read(l.data[l.bufSz:])
             if n != 0 || err != nil {
                 break
             }
@@ -122,30 +117,39 @@ func (l *Lexer) run()  {
 
         if n == 0 {
             eof = pe
-            done = true
+            l.done = true
             if err != nil && err != io.EOF {
                 l.emit(p, token.Error, err)
+                break
             }
         }
 
         %%write exec;
 
-        if cs == monkey_error {
+        if l.cs == monkey_error {
+            l.done = true
             l.emit(p, token.Error, errors.New("parse error"))
-            return
+            break
 		}
 
-        if ts == 0 {
-            have = 0
+        if l.ts == 0 {
+            l.bufSz = 0
             l.pos += p
         } else {
-            l.pos += ts
-            have = pe - ts
-            copy(data[0:], data[ts:pe])
-            te -= ts
-            ts = 0
+            l.pos += l.ts
+            l.bufSz = pe - l.ts
+            copy(l.data, l.data[l.ts:pe])
+            l.te -= l.ts
+            l.ts = 0
         }
-
     }
-    l.emit(0, token.EOF, "EOF")
+
+    if len(l.tokens) == 0 {
+        l.emit(0, token.EOF, "EOF")
+    }
+
+    t := l.tokens[0]
+    copy(l.tokens, l.tokens[1:])
+    l.tokens = l.tokens[:len(l.tokens)-1]
+    return t
 }
