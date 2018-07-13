@@ -45,7 +45,7 @@ func (l *Lexer) run()  {
 
     _ = act
 
-    var have int = 0
+    var have int
     var data [10]byte
 
     curline := 0
@@ -59,7 +59,7 @@ func (l *Lexer) run()  {
         p = have
 
         if have >= len(data) {
-            l.emit(0, token.Error, errors.New("Buffer overrun"))
+            l.emit(p, token.Error, errors.New("buffer overrun"))
             return
         }
         for {
@@ -74,7 +74,7 @@ func (l *Lexer) run()  {
             eof = pe
             done = true
             if err != nil && err != io.EOF {
-                l.emit(0, token.Error, err)
+                l.emit(p, token.Error, err)
             }
         }
 
@@ -127,21 +127,21 @@ tr2:
 //line next.rl:50
 te = p+1
 {
-        l.emit(0, token.String, string(data[ts:te]))
+        l.emit(ts, token.String, string(data[ts:te]))
 	}
 	goto st10
 tr6:
 //line next.rl:44
 te = p+1
 {
-        l.emit(0, token.Char, string(data[ts:te]))
+        l.emit(ts, token.Char, string(data[ts:te]))
 	}
 	goto st10
 tr8:
 //line next.rl:32
 p = (te) - 1
 {
-		l.emit(0, token.Symbol, data[ts]);
+		l.emit(ts, token.Symbol, data[ts]);
 	}
 	goto st10
 tr10:
@@ -155,7 +155,7 @@ tr11:
 //line next.rl:66
 p = (te) - 1
 {
-        l.emit(0, token.Int, string(data[ts:te]))
+        l.emit(ts, token.Int, string(data[ts:te]))
 	}
 	goto st10
 tr18:
@@ -174,7 +174,7 @@ tr20:
 //line next.rl:32
 te = p+1
 {
-		l.emit(0, token.Symbol, data[ts]);
+		l.emit(ts, token.Symbol, data[ts]);
 	}
 	goto st10
 tr25:
@@ -182,7 +182,7 @@ tr25:
 te = p
 p--
 {
-		l.emit(0, token.Symbol, data[ts]);
+		l.emit(ts, token.Symbol, data[ts]);
 	}
 	goto st10
 tr26:
@@ -195,7 +195,7 @@ tr27:
 te = p
 p--
 {
-        l.emit(0, token.Int, string(data[ts:te]))
+        l.emit(ts, token.Int, string(data[ts:te]))
 	}
 	goto st10
 tr30:
@@ -203,7 +203,7 @@ tr30:
 te = p
 p--
 {
-        l.emit(0, token.Float, string(data[ts:te]))
+        l.emit(ts, token.Float, string(data[ts:te]))
 	}
 	goto st10
 tr31:
@@ -211,7 +211,7 @@ tr31:
 te = p
 p--
 {
-        l.emit(0, token.Int, string(data[ts:te]))
+        l.emit(ts, token.Int, string(data[ts:te]))
 	}
 	goto st10
 tr32:
@@ -219,7 +219,7 @@ tr32:
 te = p
 p--
 {
-        l.emit(0, token.Ident, string(data[ts:te]))
+        l.emit(ts, token.Ident, string(data[ts:te]))
 	}
 	goto st10
 	st10:
@@ -574,15 +574,17 @@ st_case_0:
 //line next.rl:133
 
         if cs == monkey_error {
-            l.emit(0, token.Error, errors.New("parse error"))
+            l.emit(p, token.Error, errors.New("parse error"))
             return
 		}
 
         if ts == 0 {
             have = 0
+            l.pos += p
         } else {
+            l.pos += ts
             have = pe - ts
-            copy(data[0:], data[ts:ts+have])
+            copy(data[0:], data[ts:pe])
             te -= ts
             ts = 0
         }

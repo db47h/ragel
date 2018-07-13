@@ -30,25 +30,25 @@ import (
 	# Symbols. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving dump the symbol.
 	( punct - [_'"] ) {
-		l.emit(0, token.Symbol, data[ts]);
+		l.emit(ts, token.Symbol, data[ts]);
 	};
 
 	# Identifier. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving, dump the identifier.
 	alpha_u alnum_u* {
-        l.emit(0, token.Ident, string(data[ts:te]))
+        l.emit(ts, token.Ident, string(data[ts:te]))
 	};
 
 	# Single Quote.
 	sliteralChar = [^'\\] | newline | ( '\\' . any_count_line );
 	'\'' . sliteralChar* . '\'' {
-        l.emit(0, token.Char, string(data[ts:te]))
+        l.emit(ts, token.Char, string(data[ts:te]))
 	};
 
 	# Double Quote.
 	dliteralChar = [^"\\] | newline | ( '\\' any_count_line );
 	'"' . dliteralChar* . '"' {
-        l.emit(0, token.String, string(data[ts:te]))
+        l.emit(ts, token.String, string(data[ts:te]))
 	};
 
 	# Whitespace is standard ws, newlines and control codes.
@@ -64,19 +64,19 @@ import (
 	# Match an integer. We don't bother clearing the buf or filling it.
 	# The float machine overlaps with int and it will do it.
 	digit+ {
-        l.emit(0, token.Int, string(data[ts:te]))
+        l.emit(ts, token.Int, string(data[ts:te]))
 	};
 
 	# Match a float. Upon entering the machine clear the buf, buffer
 	# characters on every trans and dump the float upon leaving.
 	digit+ '.' digit+ {
-        l.emit(0, token.Float, string(data[ts:te]))
+        l.emit(ts, token.Float, string(data[ts:te]))
 	};
 
 	# Match a hex. Upon entering the hex part, clear the buf, buffer characters
 	# on every trans and dump the hex on leaving transitions.
 	'0x' xdigit+ {
-        l.emit(0, token.Int, string(data[ts:te]))
+        l.emit(ts, token.Int, string(data[ts:te]))
 	};
 
 	*|;
@@ -96,7 +96,7 @@ func (l *Lexer) run()  {
 
     _ = act
 
-    var have int = 0
+    var have int
     var data [10]byte
 
     curline := 0
@@ -110,7 +110,7 @@ func (l *Lexer) run()  {
         p = have
 
         if have >= len(data) {
-            l.emit(0, token.Error, errors.New("buffer overrun"))
+            l.emit(p, token.Error, errors.New("buffer overrun"))
             return
         }
         for {
@@ -125,22 +125,24 @@ func (l *Lexer) run()  {
             eof = pe
             done = true
             if err != nil && err != io.EOF {
-                l.emit(0, token.Error, err)
+                l.emit(p, token.Error, err)
             }
         }
 
         %%write exec;
 
         if cs == monkey_error {
-            l.emit(0, token.Error, errors.New("parse error"))
+            l.emit(p, token.Error, errors.New("parse error"))
             return
 		}
 
         if ts == 0 {
             have = 0
+            l.pos += p
         } else {
+            l.pos += ts
             have = pe - ts
-            copy(data[0:], data[ts:ts+have])
+            copy(data[0:], data[ts:pe])
             te -= ts
             ts = 0
         }
