@@ -90,7 +90,7 @@ func (l *Lexer) init() {
 // Next returns the next token in the input stream.
 //
 func (l *Lexer) Next() token.Token {
-    for len(l.tokens) == 0 {
+    for l.count == 0 {
         p, pe, eof, err := l.updateBuffer()
 
         %%write exec;
@@ -106,8 +106,5 @@ func (l *Lexer) Next() token.Token {
         }
     }
 
-    t := l.tokens[0]
-    copy(l.tokens, l.tokens[1:])
-    l.tokens = l.tokens[:len(l.tokens)-1]
-    return t
+    return l.pop()
 }
