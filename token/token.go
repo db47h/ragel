@@ -26,14 +26,10 @@ const (
 	String
 )
 
-// Pos represents the token's position in the input stream.
-//
-type Pos int
-
 // A Token represents a Monkey token.
 //
 type Token struct {
-	Pos     Pos
+	Offset  int
 	Type    Type
 	Literal interface{}
 }

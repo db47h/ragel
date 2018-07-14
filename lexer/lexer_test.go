@@ -12,10 +12,10 @@ func TestNext(t *testing.T) {
 	input := "a = 4;\nccc := xyz + 17\n"
 	r := strings.NewReader(input)
 
-	l := lexer.New(r)
+	l := lexer.New("INPUT", r)
 	for {
 		tok := l.Next()
-		t.Logf("tok: %v", tok)
+		t.Logf("%s: %v", l.Pos(tok.Offset), tok)
 		if tok.Type == token.EOF || tok.Type == token.Error {
 			break
 		}
@@ -28,7 +28,7 @@ func TestNext(t *testing.T) {
 func BenchmarkNext(b *testing.B) {
 	input := "a = 4; ccc := xyz + 17\n"
 	r := strings.NewReader(input)
-	l := lexer.New(r)
+	l := lexer.New("INPUT", r)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {

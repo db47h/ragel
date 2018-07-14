@@ -51,9 +51,11 @@ func (q *queue) pop() token.Token {
 //
 type Lexer struct {
 	queue
-	r    io.Reader
-	line int
-	pos  int
+	fileName string
+	r        io.Reader
+	offset   int
+	line     int
+	lines    []int
 
 	// FSM state
 	cs, ts, te, act int
@@ -63,10 +65,12 @@ type Lexer struct {
 
 // New returns a new lexer for the given io.Reader.
 //
-func New(r io.Reader) *Lexer {
+func New(fileName string, r io.Reader) *Lexer {
 	l := &Lexer{
-		r:    r,
-		data: make([]byte, bufferSize),
+		r:        r,
+		fileName: fileName,
+		data:     make([]byte, bufferSize),
+		lines:    []int{0},
 	}
 	l.ragelInit()
 	return l
@@ -79,8 +83,9 @@ func (l *Lexer) Reset() {
 	l.queue.count = 0
 	l.queue.head = 0
 	l.queue.tail = 0
+	l.offset = 0
 	l.line = 0
-	l.pos = 0
+	l.lines = l.lines[:1]
 	l.sz = 0
 
 	r := l.r.(io.Seeker)
@@ -88,15 +93,22 @@ func (l *Lexer) Reset() {
 	l.ragelInit()
 }
 
+// emit adds the given token to the output queue.
+//
 func (l *Lexer) emit(pos int, typ token.Type, value interface{}) {
-	l.push(token.Token{Pos: token.Pos(l.pos + pos), Type: typ, Literal: value})
+	l.push(token.Token{Offset: l.offset + pos, Type: typ, Literal: value})
 }
 
+// tokenString returns the current token as a string.
+//
 func (l *Lexer) tokenString() string {
 	return string(l.data[l.ts:l.te])
 }
 
+// newLine increments the line count.
+//
 func (l *Lexer) newline(pos int) {
+	l.lines = append(l.lines, l.offset+pos+1)
 	l.line++
 }
 
@@ -127,7 +139,7 @@ func (l *Lexer) Next() token.Token {
 			err = errors.New("buffer overrun")
 		}
 
-		l.ragelNext(p, pe, eof)
+		p, pe = l.ragelNext(p, pe, eof)
 
 		if l.cs == monkey_error {
 			// TODO: this needs to be a rune
@@ -136,9 +148,9 @@ func (l *Lexer) Next() token.Token {
 
 		if l.ts == 0 {
 			l.sz = 0
-			l.pos += p
+			l.offset += p
 		} else {
-			l.pos += l.ts
+			l.offset += l.ts
 			l.sz = pe - l.ts
 			copy(l.data[:], l.data[l.ts:pe])
 			l.te -= l.ts
@@ -155,4 +167,31 @@ func (l *Lexer) Next() token.Token {
 	}
 
 	return l.pop()
+}
+
+// Pos returns the line/column Position for the given offset.
+//
+func (l *Lexer) Pos(offset int) Position {
+	i, j := 0, len(l.lines)
+	for i < j {
+		h := int(uint(i+j) >> 1)
+		if !(l.lines[h] > offset) {
+			i = h + 1
+		} else {
+			j = h
+		}
+	}
+	return Position{l.fileName, i, offset - l.lines[i-1] + 1}
+}
+
+// Position represents the position of a token as its 1-based line and column numbers.
+//
+type Position struct {
+	FileName string
+	Line     int // 1-based line number
+	Column   int // 1-based column number in bytes
+}
+
+func (p Position) String() string {
+	return fmt.Sprintf("%s:%d:%d", p.FileName, p.Line, p.Column)
 }
