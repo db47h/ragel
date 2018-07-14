@@ -1,4 +1,5 @@
-//go:generate ragel -Z -G2 next.rl
+//go:generate ragel -Z -G2 lang.rl
+//go:generate stringer -type TokenType
 
 package lexer
 
@@ -6,8 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-
-	"github.com/db47h/monkey/token"
 )
 
 const bufferSize = 32768
@@ -15,18 +14,18 @@ const bufferSize = 32768
 // queue is a FIFO queue.
 //
 type queue struct {
-	items []token.Token
+	items []Token
 	head  int
 	tail  int
 	count int
 }
 
-func (q *queue) push(i token.Token) {
+func (q *queue) push(i Token) {
 	if q.items == nil {
-		q.items = make([]token.Token, 2)
+		q.items = make([]Token, 2)
 	}
 	if q.head == q.tail && q.count > 0 {
-		items := make([]token.Token, len(q.items)*2)
+		items := make([]Token, len(q.items)*2)
 		copy(items, q.items[q.head:])
 		copy(items[len(q.items)-q.head:], q.items[:q.head])
 		q.head = 0
@@ -40,11 +39,30 @@ func (q *queue) push(i token.Token) {
 
 // pop pops the first item from the queue. Callers must check that q.count > 0 beforehand.
 //
-func (q *queue) pop() token.Token {
+func (q *queue) pop() Token {
 	i := q.head
 	q.head = (q.head + 1) % len(q.items)
 	q.count--
 	return q.items[i]
+}
+
+// TokenType represents the type of a token.
+//
+type TokenType int
+
+// Token types.
+//
+const (
+	Error TokenType = -1 + iota
+	EOF
+)
+
+// Token represents a token.
+//
+type Token struct {
+	Offset  int
+	Type    TokenType
+	Literal interface{}
 }
 
 // Lexer wraps a lexer's state
@@ -95,8 +113,8 @@ func (l *Lexer) Reset() {
 
 // emit adds the given token to the output queue.
 //
-func (l *Lexer) emit(pos int, typ token.Type, value interface{}) {
-	l.push(token.Token{Offset: l.offset + pos, Type: typ, Literal: value})
+func (l *Lexer) emit(pos int, typ TokenType, value interface{}) {
+	l.push(Token{Offset: l.offset + pos, Type: typ, Literal: value})
 }
 
 // tokenString returns the current token as a string.
@@ -114,7 +132,7 @@ func (l *Lexer) newline(pos int) {
 
 // Next returns the next token in the input stream.
 //
-func (l *Lexer) Next() token.Token {
+func (l *Lexer) Next() Token {
 	for l.count == 0 {
 		var (
 			n, p, pe, eof int
@@ -141,9 +159,9 @@ func (l *Lexer) Next() token.Token {
 
 		p, pe = l.ragelNext(p, pe, eof)
 
-		if l.cs == monkey_error {
-			// TODO: this needs to be a rune
-			l.emit(p, token.Error, fmt.Errorf("unexpected character %#U", l.data[p]))
+		if l.cs == lang_error {
+			// TODO: this needs to be a rune, and error acted upon.
+			l.emit(p, Error, fmt.Errorf("unexpected character %#U", l.data[p]))
 		}
 
 		if l.ts == 0 {
@@ -160,9 +178,9 @@ func (l *Lexer) Next() token.Token {
 		switch err {
 		case nil:
 		case io.EOF:
-			l.emit(0, token.EOF, "EOF")
+			l.emit(0, EOF, nil)
 		default:
-			l.emit(0, token.Error, err)
+			l.emit(0, Error, err)
 		}
 	}
 

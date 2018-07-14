@@ -1,14 +1,23 @@
 package lexer
 
-import (
-    "github.com/db47h/monkey/token"
+// custom TokenTypes
+
+const (
+	Ident TokenType = iota+1
+	Int
+	Float
+	Symbol
+	Char
+	String
 )
 
-%%{
-    machine monkey;
+// FSM definition
 
-    # alphtype rune;
-    access l.;
+%%{
+	machine lang;
+
+	# alphtype rune;
+	access l.;
 
 	newline = '\n' @{ l.newline(p) };
 	any_count_line = any | newline;
@@ -27,25 +36,25 @@ import (
 	# Symbols. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving dump the symbol.
 	( punct - [_'"] ) {
-		l.emit(l.ts, token.Symbol, l.data[l.ts]);
+		l.emit(l.ts, Symbol, string(l.data[l.ts]));
 	};
 
 	# Identifier. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving, dump the identifier.
 	alpha_u alnum_u* {
-        l.emit(l.ts, token.Ident, l.tokenString())
+        l.emit(l.ts, Ident, l.tokenString())
 	};
 
 	# Single Quote.
 	sliteralChar = [^'\\] | newline | ( '\\' . any_count_line );
 	'\'' . sliteralChar* . '\'' {
-        l.emit(l.ts, token.Char, l.tokenString())
+        l.emit(l.ts, Char, l.tokenString())
 	};
 
 	# Double Quote.
 	dliteralChar = [^"\\] | newline | ( '\\' any_count_line );
 	'"' . dliteralChar* . '"' {
-        l.emit(l.ts, token.String, l.tokenString())
+        l.emit(l.ts, String, l.tokenString())
 	};
 
 	# Whitespace is standard ws, newlines and control codes.
@@ -61,19 +70,19 @@ import (
 	# Match an integer. We don't bother clearing the buf or filling it.
 	# The float machine overlaps with int and it will do it.
 	digit+ {
-        l.emit(l.ts, token.Int, l.tokenString())
+        l.emit(l.ts, Int, l.tokenString())
 	};
 
 	# Match a float. Upon entering the machine clear the buf, buffer
 	# characters on every trans and dump the float upon leaving.
 	digit+ '.' digit+ {
-        l.emit(l.ts, token.Float, l.tokenString())
+        l.emit(l.ts, Float, l.tokenString())
 	};
 
 	# Match a hex. Upon entering the hex part, clear the buf, buffer characters
 	# on every trans and dump the hex on leaving transitions.
 	'0x' xdigit+ {
-        l.emit(l.ts, token.Int, l.tokenString())
+        l.emit(l.ts, Int, l.tokenString())
 	};
 
 	*|;
