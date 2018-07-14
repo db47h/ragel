@@ -3,17 +3,15 @@
 package lexer
 
 import (
-    "io"
-
     "github.com/db47h/monkey/token"
 )
 
 
-//line next.rl:82
+//line next.rl:80
 
 
 
-//line next.go:17
+//line next.go:15
 const monkey_start int = 10
 const monkey_error int = 0
 
@@ -21,11 +19,11 @@ const monkey_en_c_comment int = 8
 const monkey_en_main int = 10
 
 
-//line next.rl:85
+//line next.rl:83
 
-func (l *Lexer) init() {
+func (l *Lexer) ragelInit() {
     
-//line next.go:29
+//line next.go:27
 	{
 	 l.cs = monkey_start
 	 l.ts = 0
@@ -33,17 +31,12 @@ func (l *Lexer) init() {
 	 l.act = 0
 	}
 
-//line next.rl:88
+//line next.rl:86
 }
 
-// Next returns the next token in the input stream.
-//
-func (l *Lexer) Next() token.Token {
-    for l.count == 0 {
-        p, pe, eof, err := l.updateBuffer()
-
-        
-//line next.go:47
+func (l *Lexer) ragelNext(p, pe, eof int) (int, int) {
+	
+//line next.go:40
 	{
 	if p == pe {
 		goto _test_eof
@@ -88,61 +81,61 @@ func (l *Lexer) Next() token.Token {
 	}
 	goto st_out
 tr2:
-//line next.rl:49
+//line next.rl:47
  l.te = p+1
 {
         l.emit(l.ts, token.String, l.tokenString())
 	}
 	goto st10
 tr6:
-//line next.rl:43
+//line next.rl:41
  l.te = p+1
 {
         l.emit(l.ts, token.Char, l.tokenString())
 	}
 	goto st10
 tr8:
-//line next.rl:31
+//line next.rl:29
 p = ( l.te) - 1
 {
 		l.emit(l.ts, token.Symbol, l.data[l.ts]);
 	}
 	goto st10
 tr10:
-//line next.rl:15
+//line next.rl:13
  l.newline(p) 
-//line next.rl:59
+//line next.rl:57
  l.te = p+1
 
 	goto st10
 tr11:
-//line next.rl:65
+//line next.rl:63
 p = ( l.te) - 1
 {
         l.emit(l.ts, token.Int, l.tokenString())
 	}
 	goto st10
 tr18:
-//line next.rl:54
+//line next.rl:52
  l.te = p+1
 
 	goto st10
 tr19:
-//line next.rl:15
+//line next.rl:13
  l.newline(p) 
-//line next.rl:54
+//line next.rl:52
  l.te = p+1
 
 	goto st10
 tr20:
-//line next.rl:31
+//line next.rl:29
  l.te = p+1
 {
 		l.emit(l.ts, token.Symbol, l.data[l.ts]);
 	}
 	goto st10
 tr25:
-//line next.rl:31
+//line next.rl:29
  l.te = p
 p--
 {
@@ -150,12 +143,12 @@ p--
 	}
 	goto st10
 tr26:
-//line next.rl:61
+//line next.rl:59
  l.te = p+1
 { {goto st8 } }
 	goto st10
 tr27:
-//line next.rl:65
+//line next.rl:63
  l.te = p
 p--
 {
@@ -163,7 +156,7 @@ p--
 	}
 	goto st10
 tr30:
-//line next.rl:71
+//line next.rl:69
  l.te = p
 p--
 {
@@ -171,7 +164,7 @@ p--
 	}
 	goto st10
 tr31:
-//line next.rl:77
+//line next.rl:75
  l.te = p
 p--
 {
@@ -179,7 +172,7 @@ p--
 	}
 	goto st10
 tr32:
-//line next.rl:37
+//line next.rl:35
  l.te = p
 p--
 {
@@ -197,7 +190,7 @@ p--
 //line NONE:1
  l.ts = p
 
-//line next.go:201
+//line next.go:194
 		switch  l.data[p] {
 		case 10:
 			goto tr19
@@ -244,7 +237,7 @@ p--
 		}
 		goto tr18
 tr1:
-//line next.rl:15
+//line next.rl:13
  l.newline(p) 
 	goto st1
 	st1:
@@ -252,7 +245,7 @@ tr1:
 			goto _test_eof1
 		}
 	st_case_1:
-//line next.go:256
+//line next.go:249
 		switch  l.data[p] {
 		case 10:
 			goto tr1
@@ -272,7 +265,7 @@ tr1:
 		}
 		goto st1
 tr5:
-//line next.rl:15
+//line next.rl:13
  l.newline(p) 
 	goto st3
 	st3:
@@ -280,7 +273,7 @@ tr5:
 			goto _test_eof3
 		}
 	st_case_3:
-//line next.go:284
+//line next.go:277
 		switch  l.data[p] {
 		case 10:
 			goto tr5
@@ -309,7 +302,7 @@ tr21:
 			goto _test_eof11
 		}
 	st_case_11:
-//line next.go:313
+//line next.go:306
 		switch  l.data[p] {
 		case 42:
 			goto tr26
@@ -336,7 +329,7 @@ tr22:
 			goto _test_eof12
 		}
 	st_case_12:
-//line next.go:340
+//line next.go:333
 		switch  l.data[p] {
 		case 46:
 			goto st6
@@ -375,7 +368,7 @@ tr23:
 			goto _test_eof14
 		}
 	st_case_14:
-//line next.go:379
+//line next.go:372
 		if  l.data[p] == 46 {
 			goto st6
 		}
@@ -441,7 +434,7 @@ tr23:
 		}
 		goto tr32
 tr15:
-//line next.rl:15
+//line next.rl:13
  l.newline(p) 
 	goto st8
 	st8:
@@ -452,7 +445,7 @@ tr15:
 			goto _test_eof8
 		}
 	st_case_8:
-//line next.go:456
+//line next.go:449
 		switch  l.data[p] {
 		case 10:
 			goto tr15
@@ -475,7 +468,7 @@ tr15:
 		}
 		goto st8
 tr17:
-//line next.rl:19
+//line next.rl:17
 {goto st10 }
 	goto st17
 	st17:
@@ -483,7 +476,7 @@ tr17:
 			goto _test_eof17
 		}
 	st_case_17:
-//line next.go:487
+//line next.go:480
 		goto st0
 st_case_0:
 	st0:
@@ -535,18 +528,6 @@ st_case_0:
 	_out: {}
 	}
 
-//line next.rl:97
-
-        l.shiftBuffer(p, pe)
-
-        switch err {
-        case nil:
-        case io.EOF:
-            l.emit(0, token.EOF, "EOF")
-        default:
-            l.emit(0, token.Error, err)
-        }
-    }
-
-    return l.pop()
+//line next.rl:90
+	return p, pe
 }

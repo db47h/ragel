@@ -68,7 +68,7 @@ func New(r io.Reader) *Lexer {
 		r:    r,
 		data: make([]byte, bufferSize),
 	}
-	l.init()
+	l.ragelInit()
 	return l
 }
 
@@ -85,7 +85,7 @@ func (l *Lexer) Reset() {
 
 	r := l.r.(io.Seeker)
 	r.Seek(0, io.SeekStart)
-	l.init()
+	l.ragelInit()
 }
 
 func (l *Lexer) emit(pos int, typ token.Type, value interface{}) {
@@ -100,40 +100,59 @@ func (l *Lexer) newline(pos int) {
 	l.line++
 }
 
-func (l *Lexer) updateBuffer() (p, pe, eof int, err error) {
-	var n int
-	if l.sz >= len(l.data) {
-		return l.sz, l.sz, l.sz, errors.New("buffer overrun")
-	}
-	for {
-		n, err = l.r.Read(l.data[l.sz:])
-		if n != 0 || err != nil {
-			break
+// Next returns the next token in the input stream.
+//
+func (l *Lexer) Next() token.Token {
+	for l.count == 0 {
+		var (
+			n, p, pe, eof int
+			err           error
+		)
+
+		if l.sz < len(l.data) {
+			p = l.sz
+			for {
+				n, err = l.r.Read(l.data[p:])
+				if n != 0 || err != nil {
+					break
+				}
+			}
+			pe = p + n
+			eof = -1
+			if n == 0 {
+				eof = pe
+			}
+		} else {
+			p, pe, eof = l.sz, l.sz, l.sz
+			err = errors.New("buffer overrun")
+		}
+
+		l.ragelNext(p, pe, eof)
+
+		if l.cs == monkey_error {
+			// TODO: this needs to be a rune
+			l.emit(p, token.Error, fmt.Errorf("unexpected character %#U", l.data[p]))
+		}
+
+		if l.ts == 0 {
+			l.sz = 0
+			l.pos += p
+		} else {
+			l.pos += l.ts
+			l.sz = pe - l.ts
+			copy(l.data[:], l.data[l.ts:pe])
+			l.te -= l.ts
+			l.ts = 0
+		}
+
+		switch err {
+		case nil:
+		case io.EOF:
+			l.emit(0, token.EOF, "EOF")
+		default:
+			l.emit(0, token.Error, err)
 		}
 	}
 
-	eof = -1
-	if n == 0 {
-		eof = pe
-	}
-
-	return l.sz, l.sz + n, eof, err
-}
-
-func (l *Lexer) shiftBuffer(p, pe int) {
-	if l.cs == monkey_error {
-		// TODO: this needs to be a rune
-		l.emit(p, token.Error, fmt.Errorf("unexpected character %#U", l.data[p]))
-	}
-
-	if l.ts == 0 {
-		l.sz = 0
-		l.pos += p
-	} else {
-		l.pos += l.ts
-		l.sz = pe - l.ts
-		copy(l.data[:], l.data[l.ts:pe])
-		l.te -= l.ts
-		l.ts = 0
-	}
+	return l.pop()
 }

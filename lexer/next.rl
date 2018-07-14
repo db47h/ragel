@@ -1,8 +1,6 @@
 package lexer
 
 import (
-    "io"
-
     "github.com/db47h/monkey/token"
 )
 
@@ -83,28 +81,11 @@ import (
 
 %%write data nofinal;
 
-func (l *Lexer) init() {
+func (l *Lexer) ragelInit() {
     %%write init;
 }
 
-// Next returns the next token in the input stream.
-//
-func (l *Lexer) Next() token.Token {
-    for l.count == 0 {
-        p, pe, eof, err := l.updateBuffer()
-
-        %%write exec;
-
-        l.shiftBuffer(p, pe)
-
-        switch err {
-        case nil:
-        case io.EOF:
-            l.emit(0, token.EOF, "EOF")
-        default:
-            l.emit(0, token.Error, err)
-        }
-    }
-
-    return l.pop()
+func (l *Lexer) ragelNext(p, pe, eof int) (int, int) {
+	%%write exec;
+	return p, pe
 }
