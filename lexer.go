@@ -1,8 +1,6 @@
 // Copyright 2018 Denis Bernard <db047h@gmail.com>
 // Licensed under the MIT license. See license text in the LICENSE file.
 
-//go:generate ragel -Z -G2 lang.rl
-
 // Package ragel provides a ragel based scanner for Go.
 //
 package ragel
@@ -14,6 +12,14 @@ import (
 )
 
 const bufferSize = 32768
+
+// A FSM provides an interface to ragel generated code.
+//
+type FSM interface {
+	Init(l *Lexer)
+	Run(l *Lexer, p, pe, eof int) (np, npe int)
+	ErrState() int
+}
 
 // queue is a FIFO queue.
 //
@@ -50,14 +56,14 @@ func (q *queue) pop() Token {
 	return q.items[i]
 }
 
-// TokenType represents the type of a token.
+// Type represents the type of a token.
 //
-type TokenType int
+type Type int
 
 // Token types.
 //
 const (
-	Error TokenType = -1 + iota
+	Error Type = -1 + iota
 	EOF
 )
 
@@ -65,7 +71,7 @@ const (
 //
 type Token struct {
 	Offset  int
-	Type    TokenType
+	Type    Type
 	Literal interface{}
 }
 
@@ -80,6 +86,7 @@ type Lexer struct {
 	lines    []int
 
 	// FSM state
+	f               FSM
 	cs, ts, te, act int
 	data            []byte
 	sz              int // size of unprocessed data
@@ -87,14 +94,15 @@ type Lexer struct {
 
 // New returns a new lexer for the given io.Reader.
 //
-func New(fileName string, r io.Reader) *Lexer {
+func New(fileName string, r io.Reader, f FSM) *Lexer {
 	l := &Lexer{
 		r:        r,
 		fileName: fileName,
 		data:     make([]byte, bufferSize),
 		lines:    []int{0},
+		f:        f,
 	}
-	l.ragelInit()
+	f.Init(l)
 	return l
 }
 
@@ -112,26 +120,7 @@ func (l *Lexer) Reset() {
 
 	r := l.r.(io.Seeker)
 	r.Seek(0, io.SeekStart)
-	l.ragelInit()
-}
-
-// emit adds the given token to the output queue.
-//
-func (l *Lexer) emit(pos int, typ TokenType, value interface{}) {
-	l.push(Token{Offset: l.offset + pos, Type: typ, Literal: value})
-}
-
-// tokenString returns the current token as a string.
-//
-func (l *Lexer) tokenString() string {
-	return string(l.data[l.ts:l.te])
-}
-
-// newline increments the line count.
-//
-func (l *Lexer) newline(pos int) {
-	l.lines = append(l.lines, l.offset+pos+1)
-	l.line++
+	l.f.Init(l)
 }
 
 // Next returns the next token in the input stream.
@@ -161,11 +150,11 @@ func (l *Lexer) Next() Token {
 			err = errors.New("buffer overrun")
 		}
 
-		p, pe = l.ragelNext(p, pe, eof)
+		p, pe = l.f.Run(l, p, pe, eof)
 
-		if l.cs == lang_error {
+		if l.cs == l.f.ErrState() {
 			// TODO: this needs to be a rune, and error acted upon.
-			l.emit(p, Error, fmt.Errorf("unexpected character %#U", l.data[p]))
+			l.Emit(p, Error, fmt.Errorf("unexpected character %#U", l.data[p]))
 		}
 
 		if l.ts == 0 {
@@ -182,13 +171,42 @@ func (l *Lexer) Next() Token {
 		switch err {
 		case nil:
 		case io.EOF:
-			l.emit(0, EOF, nil)
+			l.Emit(0, EOF, nil)
 		default:
-			l.emit(0, Error, err)
+			l.Emit(0, Error, err)
 		}
 	}
 
 	return l.pop()
+}
+
+// SetState saves the fsm state. This function must be called before returning
+// from FSM.Run and FSM.Init.
+//
+func (l *Lexer) SetState(cs, ts, te, act int) {
+	l.cs, l.ts, l.te, l.act = cs, ts, te, act
+}
+
+// GetState gets the fsm state and buffer. This function must be called at
+// the beginning of FSM.Run.
+//
+func (l *Lexer) GetState() (cs, ts, te, act int, data []byte) {
+	return l.cs, l.ts, l.te, l.act, l.data
+}
+
+// Emit adds the given token to the output queue. The ts argument is usually
+// the ragel variable ts.
+//
+func (l *Lexer) Emit(ts int, typ Type, value interface{}) {
+	l.push(Token{Offset: l.offset + ts, Type: typ, Literal: value})
+}
+
+// Newline increments the line count. The p argument should be the ragel
+// varaiable p.
+//
+func (l *Lexer) Newline(p int) {
+	l.lines = append(l.lines, l.offset+p+1)
+	l.line++
 }
 
 // Pos returns the line/column Position for the given offset.

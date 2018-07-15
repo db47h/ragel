@@ -1,8 +1,12 @@
-package ragel
+// Use this file as a template for your own scanner.
+// Change the package name, custom token types and the ragel machine definition.
+package ragel_test
 
-// Define your custom token types here.
+import "github.com/db47h/ragel"
+
+// Custom token types.
 const (
-	Ident TokenType = iota+1
+	Ident ragel.Type = iota + 1
 	Int
 	Float
 	Symbol
@@ -15,9 +19,8 @@ const (
 	machine lang;
 
 	# alphtype rune;
-	access l.;
 
-	newline = '\n' @{ l.newline(p) };
+	newline = '\n' @{ l.Newline(p) };
 	any_count_line = any | newline;
 
 	# Consume a C comment.
@@ -34,25 +37,25 @@ const (
 	# Symbols. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving dump the symbol.
 	( punct - [_'"] ) {
-		l.emit(l.ts, Symbol, string(l.data[l.ts]));
+		l.Emit(ts, Symbol, data[ts:te]);
 	};
 
 	# Identifier. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving, dump the identifier.
 	alpha_u alnum_u* {
-        l.emit(l.ts, Ident, l.tokenString())
+        	l.Emit(ts, Ident, data[ts:te])
 	};
 
 	# Single Quote.
 	sliteralChar = [^'\\] | newline | ( '\\' . any_count_line );
 	'\'' . sliteralChar* . '\'' {
-        l.emit(l.ts, Char, l.tokenString())
+        	l.Emit(ts, Char, data[ts:te])
 	};
 
 	# Double Quote.
 	dliteralChar = [^"\\] | newline | ( '\\' any_count_line );
 	'"' . dliteralChar* . '"' {
-        l.emit(l.ts, String, l.tokenString())
+        	l.Emit(ts, String, data[ts:te])
 	};
 
 	# Whitespace is standard ws, newlines and control codes.
@@ -68,19 +71,19 @@ const (
 	# Match an integer. We don't bother clearing the buf or filling it.
 	# The float machine overlaps with int and it will do it.
 	digit+ {
-        l.emit(l.ts, Int, l.tokenString())
+        	l.Emit(ts, Int, data[ts:te])
 	};
 
 	# Match a float. Upon entering the machine clear the buf, buffer
 	# characters on every trans and dump the float upon leaving.
 	digit+ '.' digit+ {
-        l.emit(l.ts, Float, l.tokenString())
+        	l.Emit(ts, Float, data[ts:te])
 	};
 
 	# Match a hex. Upon entering the hex part, clear the buf, buffer characters
 	# on every trans and dump the hex on leaving transitions.
 	'0x' xdigit+ {
-        l.emit(l.ts, Int, l.tokenString())
+        	l.Emit(ts, Int, data[ts:te])
 	};
 
 	*|;
@@ -90,11 +93,19 @@ const (
 
 %%write data nofinal;
 
-func (l *Lexer) ragelInit() {
-    %%write init;
+type fsm struct {}
+
+func (fsm) ErrState() int { return %%{ write error; }%% }
+
+func (fsm) Init(l *ragel.Lexer) {
+	var cs, ts, te, act int
+	%%write init;
+	l.SetState(cs, ts, te, act)
 }
 
-func (l *Lexer) ragelNext(p, pe, eof int) (int, int) {
+func (fsm) Run(l *ragel.Lexer, p, pe, eof int) (int, int) {
+	cs, ts, te, act, data := l.GetState()
 	%%write exec;
+	l.SetState(cs, ts, te, act)
 	return p, pe
 }
