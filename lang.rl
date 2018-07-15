@@ -1,7 +1,6 @@
-package lexer
+package ragel
 
-// custom TokenTypes
-
+// Define your custom token types here.
 const (
 	Ident TokenType = iota+1
 	Int
@@ -11,8 +10,7 @@ const (
 	String
 )
 
-// FSM definition
-
+// The FSM definition of your language.
 %%{
 	machine lang;
 
@@ -87,6 +85,8 @@ const (
 
 	*|;
 }%%
+
+// anything beyond this point should be left unchanged.
 
 %%write data nofinal;
 

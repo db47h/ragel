@@ -1,7 +1,11 @@
-//go:generate ragel -Z -G2 lang.rl
-//go:generate stringer -type TokenType
+// Copyright 2018 Denis Bernard <db047h@gmail.com>
+// Licensed under the MIT license. See license text in the LICENSE file.
 
-package lexer
+//go:generate ragel -Z -G2 lang.rl
+
+// Package ragel provides a ragel based scanner for Go.
+//
+package ragel
 
 import (
 	"errors"
@@ -123,7 +127,7 @@ func (l *Lexer) tokenString() string {
 	return string(l.data[l.ts:l.te])
 }
 
-// newLine increments the line count.
+// newline increments the line count.
 //
 func (l *Lexer) newline(pos int) {
 	l.lines = append(l.lines, l.offset+pos+1)
