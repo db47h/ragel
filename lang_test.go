@@ -8,7 +8,7 @@ import "github.com/db47h/ragel"
 
 // Custom token types.
 const (
-	Ident ragel.Type = iota + 1
+	Ident ragel.Token = ragel.EOF + iota
 	Int
 	Float
 	Symbol
@@ -38,7 +38,7 @@ type fsm struct {}
 
 func (fsm) ErrState() int { return 0 }
 
-func (fsm) Init(l *ragel.Lexer) {
+func (fsm) Init(s *ragel.Scanner) {
 	var cs, ts, te, act int
 	
 //line lang_test.go:45
@@ -50,11 +50,11 @@ func (fsm) Init(l *ragel.Lexer) {
 	}
 
 //line lang_test.rl:103
-	l.SetState(cs, ts, te, act)
+	s.SetState(cs, ts, te, act)
 }
 
-func (fsm) Run(l *ragel.Lexer, p, pe, eof int) (int, int) {
-	cs, ts, te, act, data := l.GetState()
+func (fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+	cs, ts, te, act, data := s.GetState()
 	
 //line lang_test.go:60
 	{
@@ -104,26 +104,26 @@ tr2:
 //line lang_test.rl:57
 te = p+1
 {
-        	l.Emit(ts, String, data[ts:te])
+        	s.Emit(ts, String, string(data[ts:te]))
 	}
 	goto st10
 tr6:
 //line lang_test.rl:51
 te = p+1
 {
-        	l.Emit(ts, Char, data[ts:te])
+        	s.Emit(ts, Char, string(data[ts:te]))
 	}
 	goto st10
 tr8:
 //line lang_test.rl:39
 p = (te) - 1
 {
-		l.Emit(ts, Symbol, data[ts:te]);
+		s.Emit(ts, Symbol, string(data[ts:te]));
 	}
 	goto st10
 tr10:
 //line lang_test.rl:23
- l.Newline(p) 
+ s.Newline(p) 
 //line lang_test.rl:67
 te = p+1
 
@@ -132,7 +132,7 @@ tr11:
 //line lang_test.rl:73
 p = (te) - 1
 {
-        	l.Emit(ts, Int, data[ts:te])
+        	s.Emit(ts, Int, string(data[ts:te]))
 	}
 	goto st10
 tr18:
@@ -142,7 +142,7 @@ te = p+1
 	goto st10
 tr19:
 //line lang_test.rl:23
- l.Newline(p) 
+ s.Newline(p) 
 //line lang_test.rl:62
 te = p+1
 
@@ -151,7 +151,7 @@ tr20:
 //line lang_test.rl:39
 te = p+1
 {
-		l.Emit(ts, Symbol, data[ts:te]);
+		s.Emit(ts, Symbol, string(data[ts:te]));
 	}
 	goto st10
 tr25:
@@ -159,7 +159,7 @@ tr25:
 te = p
 p--
 {
-		l.Emit(ts, Symbol, data[ts:te]);
+		s.Emit(ts, Symbol, string(data[ts:te]));
 	}
 	goto st10
 tr26:
@@ -172,7 +172,7 @@ tr27:
 te = p
 p--
 {
-        	l.Emit(ts, Int, data[ts:te])
+        	s.Emit(ts, Int, string(data[ts:te]))
 	}
 	goto st10
 tr30:
@@ -180,7 +180,7 @@ tr30:
 te = p
 p--
 {
-        	l.Emit(ts, Float, data[ts:te])
+        	s.Emit(ts, Float, string(data[ts:te]))
 	}
 	goto st10
 tr31:
@@ -188,7 +188,7 @@ tr31:
 te = p
 p--
 {
-        	l.Emit(ts, Int, data[ts:te])
+        	s.Emit(ts, Int, string(data[ts:te]))
 	}
 	goto st10
 tr32:
@@ -196,7 +196,7 @@ tr32:
 te = p
 p--
 {
-        	l.Emit(ts, Ident, data[ts:te])
+        	s.Emit(ts, Ident, string(data[ts:te]))
 	}
 	goto st10
 	st10:
@@ -258,7 +258,7 @@ ts = p
 		goto tr18
 tr1:
 //line lang_test.rl:23
- l.Newline(p) 
+ s.Newline(p) 
 	goto st1
 	st1:
 		if p++; p == pe {
@@ -286,7 +286,7 @@ tr1:
 		goto st1
 tr5:
 //line lang_test.rl:23
- l.Newline(p) 
+ s.Newline(p) 
 	goto st3
 	st3:
 		if p++; p == pe {
@@ -455,7 +455,7 @@ te = p+1
 		goto tr32
 tr15:
 //line lang_test.rl:23
- l.Newline(p) 
+ s.Newline(p) 
 	goto st8
 	st8:
 //line NONE:1
@@ -549,6 +549,6 @@ st_case_0:
 	}
 
 //line lang_test.rl:109
-	l.SetState(cs, ts, te, act)
+	s.SetState(cs, ts, te, act)
 	return p, pe
 }

@@ -6,7 +6,7 @@ import "github.com/db47h/ragel"
 
 // Custom token types.
 const (
-	Ident ragel.Type = iota + 1
+	Ident ragel.Token = ragel.EOF + iota
 	Int
 	Float
 	Symbol
@@ -20,7 +20,7 @@ const (
 
 	# alphtype rune;
 
-	newline = '\n' @{ l.Newline(p) };
+	newline = '\n' @{ s.Newline(p) };
 	any_count_line = any | newline;
 
 	# Consume a C comment.
@@ -37,25 +37,25 @@ const (
 	# Symbols. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving dump the symbol.
 	( punct - [_'"] ) {
-		l.Emit(ts, Symbol, data[ts:te]);
+		s.Emit(ts, Symbol, string(data[ts:te]));
 	};
 
 	# Identifier. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving, dump the identifier.
 	alpha_u alnum_u* {
-        	l.Emit(ts, Ident, data[ts:te])
+        	s.Emit(ts, Ident, string(data[ts:te]))
 	};
 
 	# Single Quote.
 	sliteralChar = [^'\\] | newline | ( '\\' . any_count_line );
 	'\'' . sliteralChar* . '\'' {
-        	l.Emit(ts, Char, data[ts:te])
+        	s.Emit(ts, Char, string(data[ts:te]))
 	};
 
 	# Double Quote.
 	dliteralChar = [^"\\] | newline | ( '\\' any_count_line );
 	'"' . dliteralChar* . '"' {
-        	l.Emit(ts, String, data[ts:te])
+        	s.Emit(ts, String, string(data[ts:te]))
 	};
 
 	# Whitespace is standard ws, newlines and control codes.
@@ -71,19 +71,19 @@ const (
 	# Match an integer. We don't bother clearing the buf or filling it.
 	# The float machine overlaps with int and it will do it.
 	digit+ {
-        	l.Emit(ts, Int, data[ts:te])
+        	s.Emit(ts, Int, string(data[ts:te]))
 	};
 
 	# Match a float. Upon entering the machine clear the buf, buffer
 	# characters on every trans and dump the float upon leaving.
 	digit+ '.' digit+ {
-        	l.Emit(ts, Float, data[ts:te])
+        	s.Emit(ts, Float, string(data[ts:te]))
 	};
 
 	# Match a hex. Upon entering the hex part, clear the buf, buffer characters
 	# on every trans and dump the hex on leaving transitions.
 	'0x' xdigit+ {
-        	l.Emit(ts, Int, data[ts:te])
+        	s.Emit(ts, Int, string(data[ts:te]))
 	};
 
 	*|;
@@ -97,15 +97,15 @@ type fsm struct {}
 
 func (fsm) ErrState() int { return %%{ write error; }%% }
 
-func (fsm) Init(l *ragel.Lexer) {
+func (fsm) Init(s *ragel.Scanner) {
 	var cs, ts, te, act int
 	%%write init;
-	l.SetState(cs, ts, te, act)
+	s.SetState(cs, ts, te, act)
 }
 
-func (fsm) Run(l *ragel.Lexer, p, pe, eof int) (int, int) {
-	cs, ts, te, act, data := l.GetState()
+func (fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+	cs, ts, te, act, data := s.GetState()
 	%%write exec;
-	l.SetState(cs, ts, te, act)
+	s.SetState(cs, ts, te, act)
 	return p, pe
 }

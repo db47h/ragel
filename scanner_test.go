@@ -18,7 +18,7 @@ func TestNext(t *testing.T) {
 
 	res := []struct {
 		pos string
-		typ ragel.Type
+		typ ragel.Token
 		lit string
 	}{
 		{":1:1", Ident, "a"},
@@ -30,23 +30,20 @@ func TestNext(t *testing.T) {
 		{":2:7", Ident, "xyz"},
 		{":2:11", Symbol, "+"},
 		{":2:13", Float, "17.0"},
-		{":3:1", ragel.EOF, ""},
+		{":3:1", ragel.EOF, "EOF"},
 	}
 
 	for i := 0; i < len(res); i++ {
-		tok := l.Next()
-		e := fmt.Sprintf("%s: %v %v", res[i].pos, res[i].typ, []byte(res[i].lit))
-		if tok.Literal == nil {
-			tok.Literal = []byte(nil)
-		}
-		g := fmt.Sprintf("%s: %v %v", l.Pos(tok.Offset), tok.Type, tok.Literal)
+		offset, tok, lit := l.Next()
+		e := fmt.Sprintf("%s: %v %v", res[i].pos, res[i].typ, res[i].lit)
+		g := fmt.Sprintf("%s: %v %v", l.Pos(offset), tok, lit)
 		if g != e {
 			t.Fatalf("Expected %q, got %q", e, g)
 		}
 	}
 
-	tok := l.Next()
-	if tok.Type != ragel.EOF {
+	_, tok, _ := l.Next()
+	if tok != ragel.EOF {
 		t.Fatalf("Expected EOF, got %v", tok)
 	}
 }
@@ -60,8 +57,8 @@ func BenchmarkNext(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		l.Reset()
 		for {
-			tok := l.Next()
-			if tok.Type == ragel.EOF || tok.Type == ragel.Error {
+			_, tok, _ := l.Next()
+			if tok == ragel.EOF || tok == ragel.Error {
 				break
 			}
 		}
@@ -69,7 +66,7 @@ func BenchmarkNext(b *testing.B) {
 }
 
 func BenchmarkNext_largeishFile(b *testing.B) {
-	r, err := os.Open("lang.go")
+	r, err := os.Open("lang_test.go")
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -79,8 +76,8 @@ func BenchmarkNext_largeishFile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		l.Reset()
 		for {
-			tok := l.Next()
-			if tok.Type == ragel.EOF || tok.Type == ragel.Error {
+			_, tok, _ := l.Next()
+			if tok == ragel.EOF || tok == ragel.Error {
 				break
 			}
 		}

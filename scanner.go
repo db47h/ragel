@@ -16,26 +16,26 @@ const bufferSize = 32768
 // A FSM provides an interface to ragel generated code.
 //
 type FSM interface {
-	Init(l *Lexer)
-	Run(l *Lexer, p, pe, eof int) (np, npe int)
+	Init(l *Scanner)
+	Run(l *Scanner, p, pe, eof int) (np, npe int)
 	ErrState() int
 }
 
 // queue is a FIFO queue.
 //
 type queue struct {
-	items []Token
+	items []item
 	head  int
 	tail  int
 	count int
 }
 
-func (q *queue) push(i Token) {
+func (q *queue) push(i item) {
 	if q.items == nil {
-		q.items = make([]Token, 2)
+		q.items = make([]item, 2)
 	}
 	if q.head == q.tail && q.count > 0 {
-		items := make([]Token, len(q.items)*2)
+		items := make([]item, len(q.items)*2)
 		copy(items, q.items[q.head:])
 		copy(items[len(q.items)-q.head:], q.items[:q.head])
 		q.head = 0
@@ -49,35 +49,36 @@ func (q *queue) push(i Token) {
 
 // pop pops the first item from the queue. Callers must check that q.count > 0 beforehand.
 //
-func (q *queue) pop() Token {
+func (q *queue) pop() (int, Token, string) {
 	i := q.head
 	q.head = (q.head + 1) % len(q.items)
 	q.count--
-	return q.items[i]
+	pi := &q.items[i]
+	return pi.off, pi.tok, pi.lit
 }
 
-// Type represents the type of a token.
+// Token represents a lexical token.
 //
-type Type int
+type Token int
 
 // Token types.
 //
 const (
-	Error Type = -1 + iota
+	Error Token = -1 + iota
 	EOF
 )
 
-// Token represents a token.
+// item represents a token.
 //
-type Token struct {
-	Offset  int
-	Type    Type
-	Literal interface{}
+type item struct {
+	off int
+	tok Token
+	lit string
 }
 
-// Lexer wraps a lexer's state
+// Scanner wraps a scanner's state
 //
-type Lexer struct {
+type Scanner struct {
 	queue
 	fileName string
 	r        io.Reader
@@ -92,10 +93,10 @@ type Lexer struct {
 	sz              int // size of unprocessed data
 }
 
-// New returns a new lexer for the given io.Reader.
+// New returns a new scanner for the given io.Reader and FSM.
 //
-func New(fileName string, r io.Reader, f FSM) *Lexer {
-	l := &Lexer{
+func New(fileName string, r io.Reader, f FSM) *Scanner {
+	l := &Scanner{
 		r:        r,
 		fileName: fileName,
 		data:     make([]byte, bufferSize),
@@ -106,10 +107,10 @@ func New(fileName string, r io.Reader, f FSM) *Lexer {
 	return l
 }
 
-// Reset resets the lexer to the start of the input stream. It will panic if
+// Reset resets the scanner to the start of the input stream. It will panic if
 // the source reader is not an io.Seeker.
 //
-func (l *Lexer) Reset() {
+func (l *Scanner) Reset() {
 	l.queue.count = 0
 	l.queue.head = 0
 	l.queue.tail = 0
@@ -125,7 +126,7 @@ func (l *Lexer) Reset() {
 
 // Next returns the next token in the input stream.
 //
-func (l *Lexer) Next() Token {
+func (l *Scanner) Next() (offset int, token Token, literal string) {
 	for l.count == 0 {
 		var (
 			n, p, pe, eof int
@@ -154,7 +155,7 @@ func (l *Lexer) Next() Token {
 
 		if l.cs == l.f.ErrState() {
 			// TODO: this needs to be a rune, and error acted upon.
-			l.Emit(p, Error, fmt.Errorf("unexpected character %#U", l.data[p]))
+			l.Emit(p, Error, fmt.Sprintf("unexpected character %#U", l.data[p]))
 		}
 
 		if l.ts == 0 {
@@ -171,9 +172,9 @@ func (l *Lexer) Next() Token {
 		switch err {
 		case nil:
 		case io.EOF:
-			l.Emit(0, EOF, nil)
+			l.Emit(0, EOF, "EOF")
 		default:
-			l.Emit(0, Error, err)
+			l.Emit(0, Error, err.Error())
 		}
 	}
 
@@ -183,35 +184,35 @@ func (l *Lexer) Next() Token {
 // SetState saves the fsm state. This function must be called before returning
 // from FSM.Run and FSM.Init.
 //
-func (l *Lexer) SetState(cs, ts, te, act int) {
+func (l *Scanner) SetState(cs, ts, te, act int) {
 	l.cs, l.ts, l.te, l.act = cs, ts, te, act
 }
 
 // GetState gets the fsm state and buffer. This function must be called at
 // the beginning of FSM.Run.
 //
-func (l *Lexer) GetState() (cs, ts, te, act int, data []byte) {
+func (l *Scanner) GetState() (cs, ts, te, act int, data []byte) {
 	return l.cs, l.ts, l.te, l.act, l.data
 }
 
 // Emit adds the given token to the output queue. The ts argument is usually
 // the ragel variable ts.
 //
-func (l *Lexer) Emit(ts int, typ Type, value interface{}) {
-	l.push(Token{Offset: l.offset + ts, Type: typ, Literal: value})
+func (l *Scanner) Emit(ts int, typ Token, value string) {
+	l.push(item{off: l.offset + ts, tok: typ, lit: value})
 }
 
 // Newline increments the line count. The p argument should be the ragel
 // varaiable p.
 //
-func (l *Lexer) Newline(p int) {
+func (l *Scanner) Newline(p int) {
 	l.lines = append(l.lines, l.offset+p+1)
 	l.line++
 }
 
 // Pos returns the line/column Position for the given offset.
 //
-func (l *Lexer) Pos(offset int) Position {
+func (l *Scanner) Pos(offset int) Position {
 	i, j := 0, len(l.lines)
 	for i < j {
 		h := int(uint(i+j) >> 1)
