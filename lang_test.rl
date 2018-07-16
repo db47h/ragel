@@ -3,7 +3,6 @@
 package ragel_test
 
 import (
-	"fmt"
 	"github.com/db47h/ragel"
 )
 
@@ -104,16 +103,13 @@ func (fsm) Init(s *ragel.Scanner) {
 	s.SetState(cs, ts, te, act)
 }
 
+func (fsm) States() (start, err int) {
+	return %%{ write start; }%%, %%{ write error; }%%
+}
+
 func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	%%write exec;
-
-	if cs == %%{ write error; }%% {
-		// TODO: this needs to be a rune.
-		s.Error(p, fmt.Sprintf("invalid character %#U", data[p]))
-		cs = %%{ write start; }%%
-	}
-
 	s.SetState(cs, ts, te, act)
 	return p, pe
 }

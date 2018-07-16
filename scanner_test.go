@@ -12,7 +12,7 @@ import (
 )
 
 func TestNext(t *testing.T) {
-	input := "a = 4;\nçcc = xyz + 17.0\n"
+	input := "\x88a = 4;\nçcc = xyz + 17.0\n\x81"
 	r := strings.NewReader(input)
 	l := ragel.New("", r, fsm{})
 
@@ -21,16 +21,19 @@ func TestNext(t *testing.T) {
 		typ ragel.Token
 		lit string
 	}{
-		{":1:1", Ident, "a"},
-		{":1:3", Symbol, "="},
-		{":1:5", Int, "4"},
-		{":1:6", Symbol, ";"},
+		{":1:1", ragel.Error, "invalid character U+0088"},
+		{":1:2", Ident, "a"},
+		{":1:4", Symbol, "="},
+		{":1:6", Int, "4"},
+		{":1:7", Symbol, ";"},
 		{":2:1", Ident, "çcc"},
 		{":2:6", Symbol, "="},
 		{":2:8", Ident, "xyz"},
 		{":2:12", Symbol, "+"},
 		{":2:14", Float, "17.0"},
-		{":3:1", ragel.EOF, "EOF"},
+		{":3:1", ragel.Error, "invalid character U+0081"},
+		{":3:2", ragel.EOF, "EOF"},
+		{":3:2", ragel.EOF, "EOF"},
 	}
 
 	for i := 0; i < len(res); i++ {
@@ -40,11 +43,6 @@ func TestNext(t *testing.T) {
 		if g != e {
 			t.Errorf("Expected %q, got %q", e, g)
 		}
-	}
-
-	_, tok, _ := l.Next()
-	if tok != ragel.EOF {
-		t.Errorf("Expected EOF, got %v", tok)
 	}
 }
 

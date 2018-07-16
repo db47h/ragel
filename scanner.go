@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"unicode/utf8"
 )
 
 const bufferSize = 32768
@@ -17,6 +18,7 @@ const bufferSize = 32768
 //
 type FSM interface {
 	Init(l *Scanner)
+	States() (start, err int)
 	Run(l *Scanner, p, pe, eof int) (np, npe int)
 }
 
@@ -150,7 +152,21 @@ func (l *Scanner) Next() (offset int, token Token, literal string) {
 			err = errors.New("buffer overrun")
 		}
 
+	again:
 		p, pe = l.f.Run(l, p, pe, eof)
+
+		if ss, se := l.f.States(); l.cs == se {
+			r, _ := utf8.DecodeRune(l.data[p:])
+			if r == utf8.RuneError {
+				r = rune(l.data[p])
+			}
+			l.Errorf(p, "invalid character %#U", r)
+			p++
+			l.cs = ss
+			if p < pe {
+				goto again
+			}
+		}
 
 		if l.ts == 0 {
 			l.sz = 0
@@ -196,10 +212,11 @@ func (l *Scanner) Emit(ts int, typ Token, value string) {
 	l.push(item{off: l.offset + ts, tok: typ, lit: value})
 }
 
-// Error is a wrapper around Emit that emits error tokens.
+// Errorf is a wrapper around Emit that emits error tokens. format and args
+// are passed through fmt.Sprintf to forom the literal value.
 //
-func (l *Scanner) Error(ts int, value string) {
-	l.push(item{off: l.offset + ts, tok: Error, lit: value})
+func (l *Scanner) Errorf(ts int, format string, args ...interface{}) {
+	l.push(item{off: l.offset + ts, tok: Error, lit: fmt.Sprintf(format, args...)})
 }
 
 // Newline increments the line count. The p argument should be the ragel

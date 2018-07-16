@@ -5,7 +5,6 @@
 package ragel_test
 
 import (
-	"fmt"
 	"github.com/db47h/ragel"
 )
 
@@ -21,13 +20,13 @@ const (
 
 // The FSM definition of your language.
 
-//line lang_test.rl:93
+//line lang_test.rl:92
 
 
 // anything beyond this point should be left unchanged.
 
 
-//line lang_test.go:31
+//line lang_test.go:30
 const lang_start int = 195
 const lang_error int = 0
 
@@ -35,14 +34,14 @@ const lang_en_c_comment int = 193
 const lang_en_main int = 195
 
 
-//line lang_test.rl:98
+//line lang_test.rl:97
 
 type fsm struct {}
 
 func (fsm) Init(s *ragel.Scanner) {
 	var cs, ts, te, act int
 	
-//line lang_test.go:46
+//line lang_test.go:45
 	{
 	cs = lang_start
 	ts = 0
@@ -50,14 +49,18 @@ func (fsm) Init(s *ragel.Scanner) {
 	act = 0
 	}
 
-//line lang_test.rl:104
+//line lang_test.rl:103
 	s.SetState(cs, ts, te, act)
+}
+
+func (fsm) States() (start, err int) {
+	return 195, 0
 }
 
 func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	
-//line lang_test.go:61
+//line lang_test.go:64
 	{
 	if p == pe {
 		goto _test_eof
@@ -472,35 +475,35 @@ func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	}
 	goto st_out
 tr2:
-//line lang_test.rl:59
+//line lang_test.rl:58
 te = p+1
 {
         	s.Emit(ts, String, string(data[ts:te]))
 	}
 	goto st195
 tr6:
-//line lang_test.rl:53
+//line lang_test.rl:52
 te = p+1
 {
         	s.Emit(ts, Char, string(data[ts:te]))
 	}
 	goto st195
 tr8:
-//line lang_test.rl:41
+//line lang_test.rl:40
 p = (te) - 1
 {
 		s.Emit(ts, Symbol, string(data[ts:te]));
 	}
 	goto st195
 tr10:
-//line lang_test.rl:25
+//line lang_test.rl:24
  s.Newline(p) 
-//line lang_test.rl:70
+//line lang_test.rl:69
 te = p+1
 
 	goto st195
 tr11:
-//line lang_test.rl:76
+//line lang_test.rl:75
 p = (te) - 1
 {
         	s.Emit(ts, Int, string(data[ts:te]))
@@ -520,26 +523,26 @@ tr14:
 	
 	goto st195
 tr178:
-//line lang_test.rl:65
+//line lang_test.rl:64
 te = p+1
 
 	goto st195
 tr180:
-//line lang_test.rl:25
+//line lang_test.rl:24
  s.Newline(p) 
-//line lang_test.rl:65
+//line lang_test.rl:64
 te = p+1
 
 	goto st195
 tr181:
-//line lang_test.rl:41
+//line lang_test.rl:40
 te = p+1
 {
 		s.Emit(ts, Symbol, string(data[ts:te]));
 	}
 	goto st195
 tr212:
-//line lang_test.rl:41
+//line lang_test.rl:40
 te = p
 p--
 {
@@ -547,12 +550,12 @@ p--
 	}
 	goto st195
 tr213:
-//line lang_test.rl:72
+//line lang_test.rl:71
 te = p+1
 { {goto st193 } }
 	goto st195
 tr214:
-//line lang_test.rl:76
+//line lang_test.rl:75
 te = p
 p--
 {
@@ -560,7 +563,7 @@ p--
 	}
 	goto st195
 tr217:
-//line lang_test.rl:82
+//line lang_test.rl:81
 te = p
 p--
 {
@@ -568,7 +571,7 @@ p--
 	}
 	goto st195
 tr218:
-//line lang_test.rl:88
+//line lang_test.rl:87
 te = p
 p--
 {
@@ -576,7 +579,7 @@ p--
 	}
 	goto st195
 tr219:
-//line lang_test.rl:47
+//line lang_test.rl:46
 te = p
 p--
 {
@@ -597,7 +600,7 @@ act = 0
 //line NONE:1
 ts = p
 
-//line lang_test.go:601
+//line lang_test.go:604
 		switch data[p] {
 		case 10:
 			goto tr180
@@ -730,7 +733,7 @@ st_case_0:
 		cs = 0
 		goto _out
 tr1:
-//line lang_test.rl:25
+//line lang_test.rl:24
  s.Newline(p) 
 	goto st1
 	st1:
@@ -738,7 +741,7 @@ tr1:
 			goto _test_eof1
 		}
 	st_case_1:
-//line lang_test.go:742
+//line lang_test.go:745
 		switch data[p] {
 		case 10:
 			goto tr1
@@ -758,7 +761,7 @@ tr1:
 		}
 		goto st1
 tr5:
-//line lang_test.rl:25
+//line lang_test.rl:24
  s.Newline(p) 
 	goto st3
 	st3:
@@ -766,7 +769,7 @@ tr5:
 			goto _test_eof3
 		}
 	st_case_3:
-//line lang_test.go:770
+//line lang_test.go:773
 		switch data[p] {
 		case 10:
 			goto tr5
@@ -795,7 +798,7 @@ te = p+1
 			goto _test_eof196
 		}
 	st_case_196:
-//line lang_test.go:799
+//line lang_test.go:802
 		switch data[p] {
 		case 42:
 			goto tr213
@@ -822,7 +825,7 @@ te = p+1
 			goto _test_eof197
 		}
 	st_case_197:
-//line lang_test.go:826
+//line lang_test.go:829
 		switch data[p] {
 		case 46:
 			goto st6
@@ -861,7 +864,7 @@ te = p+1
 			goto _test_eof199
 		}
 	st_case_199:
-//line lang_test.go:865
+//line lang_test.go:868
 		if data[p] == 46 {
 			goto st6
 		}
@@ -909,7 +912,7 @@ tr15:
 //line NONE:1
 te = p+1
 
-//line lang_test.rl:47
+//line lang_test.rl:46
 act = 2;
 	goto st201
 	st201:
@@ -917,7 +920,7 @@ act = 2;
 			goto _test_eof201
 		}
 	st_case_201:
-//line lang_test.go:921
+//line lang_test.go:924
 		switch data[p] {
 		case 95:
 			goto tr15
@@ -4374,7 +4377,7 @@ act = 2;
 		}
 		goto tr14
 tr175:
-//line lang_test.rl:25
+//line lang_test.rl:24
  s.Newline(p) 
 	goto st193
 	st193:
@@ -4385,7 +4388,7 @@ ts = 0
 			goto _test_eof193
 		}
 	st_case_193:
-//line lang_test.go:4389
+//line lang_test.go:4392
 		switch data[p] {
 		case 10:
 			goto tr175
@@ -4408,7 +4411,7 @@ ts = 0
 		}
 		goto st193
 tr177:
-//line lang_test.rl:29
+//line lang_test.rl:28
 {goto st195 }
 	goto st202
 	st202:
@@ -4416,7 +4419,7 @@ tr177:
 			goto _test_eof202
 		}
 	st_case_202:
-//line lang_test.go:4420
+//line lang_test.go:4423
 		goto st0
 	st_out:
 	_test_eof195: cs = 195; goto _test_eof
@@ -5019,14 +5022,7 @@ tr177:
 	_out: {}
 	}
 
-//line lang_test.rl:110
-
-	if cs == 0 {
-		// TODO: this needs to be a rune.
-		s.Error(p, fmt.Sprintf("invalid character %#U", data[p]))
-		cs = 195
-	}
-
+//line lang_test.rl:113
 	s.SetState(cs, ts, te, act)
 	return p, pe
 }
