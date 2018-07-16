@@ -18,7 +18,6 @@ const bufferSize = 32768
 type FSM interface {
 	Init(l *Scanner)
 	Run(l *Scanner, p, pe, eof int) (np, npe int)
-	ErrState() int
 }
 
 // queue is a FIFO queue.
@@ -153,11 +152,6 @@ func (l *Scanner) Next() (offset int, token Token, literal string) {
 
 		p, pe = l.f.Run(l, p, pe, eof)
 
-		if l.cs == l.f.ErrState() {
-			// TODO: this needs to be a rune, and error acted upon.
-			l.Emit(p, Error, fmt.Sprintf("unexpected character %#U", l.data[p]))
-		}
-
 		if l.ts == 0 {
 			l.sz = 0
 			l.offset += p
@@ -200,6 +194,12 @@ func (l *Scanner) GetState() (cs, ts, te, act int, data []byte) {
 //
 func (l *Scanner) Emit(ts int, typ Token, value string) {
 	l.push(item{off: l.offset + ts, tok: typ, lit: value})
+}
+
+// Error is a wrapper around Emit that emits error tokens.
+//
+func (l *Scanner) Error(ts int, value string) {
+	l.push(item{off: l.offset + ts, tok: Error, lit: value})
 }
 
 // Newline increments the line count. The p argument should be the ragel

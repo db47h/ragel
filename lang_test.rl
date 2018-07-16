@@ -2,7 +2,10 @@
 // Change the package name, custom token types and the ragel machine definition.
 package ragel_test
 
-import "github.com/db47h/ragel"
+import (
+	"fmt"
+	"github.com/db47h/ragel"
+)
 
 // Custom token types.
 const (
@@ -17,8 +20,7 @@ const (
 // The FSM definition of your language.
 %%{
 	machine lang;
-
-	# alphtype rune;
+	include WChar "utf8.rl";
 
 	newline = '\n' @{ s.Newline(p) };
 	any_count_line = any | newline;
@@ -29,10 +31,10 @@ const (
 	main := |*
 
 	# Alpha numberic characters or underscore.
-	alnum_u = alnum | '_';
+	alnum_u = ualnum | '_';
 
 	# Alpha charactres or underscore.
-	alpha_u = alpha | '_';
+	alpha_u = ualpha | '_';
 
 	# Symbols. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving dump the symbol.
@@ -59,7 +61,8 @@ const (
 	};
 
 	# Whitespace is standard ws, newlines and control codes.
-	any_count_line - 0x21..0x7e;
+	# any_count_line - 0x21..0x7e;
+	newline | 0x01..09 | 0x0b..0x1f | ' ' | 0x7f;
 
 	# Describe both c style comments and c++ style comments. The
 	# priority bump on tne terminator of the comments brings us
@@ -70,13 +73,13 @@ const (
 
 	# Match an integer. We don't bother clearing the buf or filling it.
 	# The float machine overlaps with int and it will do it.
-	digit+ {
+	udigit+ {
         	s.Emit(ts, Int, string(data[ts:te]))
 	};
 
 	# Match a float. Upon entering the machine clear the buf, buffer
 	# characters on every trans and dump the float upon leaving.
-	digit+ '.' digit+ {
+	udigit+ '.' udigit+ {
         	s.Emit(ts, Float, string(data[ts:te]))
 	};
 
@@ -95,17 +98,22 @@ const (
 
 type fsm struct {}
 
-func (fsm) ErrState() int { return %%{ write error; }%% }
-
 func (fsm) Init(s *ragel.Scanner) {
 	var cs, ts, te, act int
 	%%write init;
 	s.SetState(cs, ts, te, act)
 }
 
-func (fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	%%write exec;
+
+	if cs == %%{ write error; }%% {
+		// TODO: this needs to be a rune.
+		s.Error(p, fmt.Sprintf("invalid character %#U", data[p]))
+		cs = %%{ write start; }%%
+	}
+
 	s.SetState(cs, ts, te, act)
 	return p, pe
 }

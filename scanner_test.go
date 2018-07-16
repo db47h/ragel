@@ -12,7 +12,7 @@ import (
 )
 
 func TestNext(t *testing.T) {
-	input := "a = 4;\nccc = xyz + 17.0\n"
+	input := "a = 4;\nçcc = xyz + 17.0\n"
 	r := strings.NewReader(input)
 	l := ragel.New("", r, fsm{})
 
@@ -25,11 +25,11 @@ func TestNext(t *testing.T) {
 		{":1:3", Symbol, "="},
 		{":1:5", Int, "4"},
 		{":1:6", Symbol, ";"},
-		{":2:1", Ident, "ccc"},
-		{":2:5", Symbol, "="},
-		{":2:7", Ident, "xyz"},
-		{":2:11", Symbol, "+"},
-		{":2:13", Float, "17.0"},
+		{":2:1", Ident, "çcc"},
+		{":2:6", Symbol, "="},
+		{":2:8", Ident, "xyz"},
+		{":2:12", Symbol, "+"},
+		{":2:14", Float, "17.0"},
 		{":3:1", ragel.EOF, "EOF"},
 	}
 
@@ -38,18 +38,18 @@ func TestNext(t *testing.T) {
 		e := fmt.Sprintf("%s: %v %v", res[i].pos, res[i].typ, res[i].lit)
 		g := fmt.Sprintf("%s: %v %v", l.Pos(offset), tok, lit)
 		if g != e {
-			t.Fatalf("Expected %q, got %q", e, g)
+			t.Errorf("Expected %q, got %q", e, g)
 		}
 	}
 
 	_, tok, _ := l.Next()
 	if tok != ragel.EOF {
-		t.Fatalf("Expected EOF, got %v", tok)
+		t.Errorf("Expected EOF, got %v", tok)
 	}
 }
 
 func BenchmarkNext(b *testing.B) {
-	input := "a = 4; ccc := xyz + 17\n"
+	input := "a = 4; çcc := xyz + 17\n"
 	r := strings.NewReader(input)
 	l := ragel.New("INPUT", r, fsm{})
 	b.ResetTimer()
