@@ -1,7 +1,8 @@
 # ragel-go
 
-This is a [ragel] based scanner for Go. It takes care of all the boiler plate
-code, letting the user focus on the ragel state machine definition.
+This is a thin wrapper for [ragel] based scanners in Go. It takes care of all
+the boiler plate code, letting the user focus on the ragel state machine
+definition.
 
 ## Intro
 
