@@ -1,16 +1,17 @@
 
 //line lang_test.rl:1
 // Use this file as a template for your own scanner.
-// Change the package name, custom token types and the ragel machine definition.
+// Change the package name, custom token types and the ragel state machine definition.
+// The FSM implementation at the bottom of the file should be left as-is.
+
 package ragel_test
 
-import (
-	"github.com/db47h/ragel"
-)
+import "github.com/db47h/ragel"
 
 // Custom token types.
+//
 const (
-	Ident ragel.Token = ragel.EOF + iota
+	Ident ragel.Token = iota
 	Int
 	Float
 	Symbol
@@ -18,13 +19,12 @@ const (
 	String
 )
 
-// The FSM definition of your language.
 
-//line lang_test.rl:92
+//line lang_test.rl:93
 
 
-// anything beyond this point should be left unchanged.
 
+//line lang_test.rl:97
 
 //line lang_test.go:30
 const lang_start int = 195
@@ -34,14 +34,19 @@ const lang_en_c_comment int = 193
 const lang_en_main int = 195
 
 
-//line lang_test.rl:97
+//line lang_test.rl:98
 
+// fsm implements ragel.FSM. This is the interface between the ragel generated
+// code for a given machine and ragel.Scanner.
+//
+// Create a new scanner by calling scanner.New(..., fsm{}).
+// 
 type fsm struct {}
 
 func (fsm) Init(s *ragel.Scanner) {
 	var cs, ts, te, act int
 	
-//line lang_test.go:45
+//line lang_test.go:50
 	{
 	cs = lang_start
 	ts = 0
@@ -49,7 +54,7 @@ func (fsm) Init(s *ragel.Scanner) {
 	act = 0
 	}
 
-//line lang_test.rl:103
+//line lang_test.rl:109
 	s.SetState(cs, ts, te, act)
 }
 
@@ -60,7 +65,7 @@ func (fsm) States() (start, err int) {
 func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	
-//line lang_test.go:64
+//line lang_test.go:69
 	{
 	if p == pe {
 		goto _test_eof
@@ -68,8 +73,6 @@ func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	switch cs {
 	case 195:
 		goto st_case_195
-	case 0:
-		goto st_case_0
 	case 1:
 		goto st_case_1
 	case 2:
@@ -466,6 +469,8 @@ func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 		goto st_case_191
 	case 192:
 		goto st_case_192
+	case 0:
+		goto st_case_0
 	case 193:
 		goto st_case_193
 	case 194:
@@ -475,35 +480,35 @@ func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	}
 	goto st_out
 tr2:
-//line lang_test.rl:58
+//line lang_test.rl:60
 te = p+1
 {
         	s.Emit(ts, String, string(data[ts:te]))
 	}
 	goto st195
 tr6:
-//line lang_test.rl:52
+//line lang_test.rl:54
 te = p+1
 {
         	s.Emit(ts, Char, string(data[ts:te]))
 	}
 	goto st195
 tr8:
-//line lang_test.rl:40
+//line lang_test.rl:42
 p = (te) - 1
 {
 		s.Emit(ts, Symbol, string(data[ts:te]));
 	}
 	goto st195
 tr10:
-//line lang_test.rl:24
+//line lang_test.rl:26
  s.Newline(p) 
-//line lang_test.rl:69
+//line lang_test.rl:70
 te = p+1
 
 	goto st195
 tr11:
-//line lang_test.rl:75
+//line lang_test.rl:76
 p = (te) - 1
 {
         	s.Emit(ts, Int, string(data[ts:te]))
@@ -523,26 +528,26 @@ tr14:
 	
 	goto st195
 tr178:
-//line lang_test.rl:64
+//line lang_test.rl:65
+te = p+1
+
+	goto st195
+tr179:
+//line lang_test.rl:26
+ s.Newline(p) 
+//line lang_test.rl:65
 te = p+1
 
 	goto st195
 tr180:
-//line lang_test.rl:24
- s.Newline(p) 
-//line lang_test.rl:64
-te = p+1
-
-	goto st195
-tr181:
-//line lang_test.rl:40
+//line lang_test.rl:42
 te = p+1
 {
 		s.Emit(ts, Symbol, string(data[ts:te]));
 	}
 	goto st195
 tr212:
-//line lang_test.rl:40
+//line lang_test.rl:42
 te = p
 p--
 {
@@ -550,12 +555,12 @@ p--
 	}
 	goto st195
 tr213:
-//line lang_test.rl:71
+//line lang_test.rl:72
 te = p+1
 { {goto st193 } }
 	goto st195
 tr214:
-//line lang_test.rl:75
+//line lang_test.rl:76
 te = p
 p--
 {
@@ -563,7 +568,7 @@ p--
 	}
 	goto st195
 tr217:
-//line lang_test.rl:81
+//line lang_test.rl:82
 te = p
 p--
 {
@@ -571,7 +576,7 @@ p--
 	}
 	goto st195
 tr218:
-//line lang_test.rl:87
+//line lang_test.rl:88
 te = p
 p--
 {
@@ -579,7 +584,7 @@ p--
 	}
 	goto st195
 tr219:
-//line lang_test.rl:46
+//line lang_test.rl:48
 te = p
 p--
 {
@@ -600,18 +605,18 @@ act = 0
 //line NONE:1
 ts = p
 
-//line lang_test.go:604
+//line lang_test.go:609
 		switch data[p] {
 		case 10:
-			goto tr180
+			goto tr179
 		case 34:
 			goto st1
 		case 39:
 			goto st3
 		case 47:
-			goto tr182
+			goto tr181
 		case 48:
-			goto tr183
+			goto tr182
 		case 95:
 			goto tr15
 		case 127:
@@ -684,9 +689,9 @@ ts = p
 				switch {
 				case data[p] > 32:
 					if 33 <= data[p] && data[p] <= 46 {
-						goto tr181
+						goto tr180
 					}
-				case data[p] >= 1:
+				default:
 					goto tr178
 				}
 			case data[p] > 57:
@@ -696,10 +701,10 @@ ts = p
 						goto tr15
 					}
 				case data[p] >= 58:
-					goto tr181
+					goto tr180
 				}
 			default:
-				goto tr184
+				goto tr183
 			}
 		case data[p] > 96:
 			switch {
@@ -707,7 +712,7 @@ ts = p
 				switch {
 				case data[p] > 122:
 					if 123 <= data[p] && data[p] <= 126 {
-						goto tr181
+						goto tr180
 					}
 				case data[p] >= 97:
 					goto tr15
@@ -725,15 +730,11 @@ ts = p
 				goto st10
 			}
 		default:
-			goto tr181
+			goto tr180
 		}
 		goto st0
-st_case_0:
-	st0:
-		cs = 0
-		goto _out
 tr1:
-//line lang_test.rl:24
+//line lang_test.rl:26
  s.Newline(p) 
 	goto st1
 	st1:
@@ -741,7 +742,7 @@ tr1:
 			goto _test_eof1
 		}
 	st_case_1:
-//line lang_test.go:745
+//line lang_test.go:746
 		switch data[p] {
 		case 10:
 			goto tr1
@@ -761,7 +762,7 @@ tr1:
 		}
 		goto st1
 tr5:
-//line lang_test.rl:24
+//line lang_test.rl:26
  s.Newline(p) 
 	goto st3
 	st3:
@@ -769,7 +770,7 @@ tr5:
 			goto _test_eof3
 		}
 	st_case_3:
-//line lang_test.go:773
+//line lang_test.go:774
 		switch data[p] {
 		case 10:
 			goto tr5
@@ -788,7 +789,7 @@ tr5:
 			goto tr5
 		}
 		goto st3
-tr182:
+tr181:
 //line NONE:1
 te = p+1
 
@@ -798,7 +799,7 @@ te = p+1
 			goto _test_eof196
 		}
 	st_case_196:
-//line lang_test.go:802
+//line lang_test.go:803
 		switch data[p] {
 		case 42:
 			goto tr213
@@ -815,7 +816,7 @@ te = p+1
 			goto tr10
 		}
 		goto st5
-tr183:
+tr182:
 //line NONE:1
 te = p+1
 
@@ -825,7 +826,7 @@ te = p+1
 			goto _test_eof197
 		}
 	st_case_197:
-//line lang_test.go:829
+//line lang_test.go:830
 		switch data[p] {
 		case 46:
 			goto st6
@@ -833,7 +834,7 @@ te = p+1
 			goto st7
 		}
 		if 48 <= data[p] && data[p] <= 57 {
-			goto tr184
+			goto tr183
 		}
 		goto tr214
 	st6:
@@ -854,7 +855,7 @@ te = p+1
 			goto st198
 		}
 		goto tr217
-tr184:
+tr183:
 //line NONE:1
 te = p+1
 
@@ -864,12 +865,12 @@ te = p+1
 			goto _test_eof199
 		}
 	st_case_199:
-//line lang_test.go:868
+//line lang_test.go:869
 		if data[p] == 46 {
 			goto st6
 		}
 		if 48 <= data[p] && data[p] <= 57 {
-			goto tr184
+			goto tr183
 		}
 		goto tr214
 	st7:
@@ -912,7 +913,7 @@ tr15:
 //line NONE:1
 te = p+1
 
-//line lang_test.rl:46
+//line lang_test.rl:48
 act = 2;
 	goto st201
 	st201:
@@ -920,7 +921,7 @@ act = 2;
 			goto _test_eof201
 		}
 	st_case_201:
-//line lang_test.go:924
+//line lang_test.go:925
 		switch data[p] {
 		case 95:
 			goto tr15
@@ -1064,10 +1065,10 @@ act = 2;
 			goto _test_eof12
 		}
 	st_case_12:
-		if data[p] <= 127 {
-			goto tr14
+		if 128 <= data[p] {
+			goto tr15
 		}
-		goto tr15
+		goto tr14
 	st13:
 		if p++; p == pe {
 			goto _test_eof13
@@ -4376,8 +4377,12 @@ act = 2;
 			goto st10
 		}
 		goto tr14
+st_case_0:
+	st0:
+		cs = 0
+		goto _out
 tr175:
-//line lang_test.rl:24
+//line lang_test.rl:26
  s.Newline(p) 
 	goto st193
 	st193:
@@ -4388,7 +4393,7 @@ ts = 0
 			goto _test_eof193
 		}
 	st_case_193:
-//line lang_test.go:4392
+//line lang_test.go:4397
 		switch data[p] {
 		case 10:
 			goto tr175
@@ -4411,7 +4416,7 @@ ts = 0
 		}
 		goto st193
 tr177:
-//line lang_test.rl:28
+//line lang_test.rl:30
 {goto st195 }
 	goto st202
 	st202:
@@ -4419,7 +4424,7 @@ tr177:
 			goto _test_eof202
 		}
 	st_case_202:
-//line lang_test.go:4423
+//line lang_test.go:4428
 		goto st0
 	st_out:
 	_test_eof195: cs = 195; goto _test_eof
@@ -5022,7 +5027,7 @@ tr177:
 	_out: {}
 	}
 
-//line lang_test.rl:113
+//line lang_test.rl:119
 	s.SetState(cs, ts, te, act)
 	return p, pe
 }

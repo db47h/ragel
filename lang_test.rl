@@ -1,14 +1,15 @@
 // Use this file as a template for your own scanner.
-// Change the package name, custom token types and the ragel machine definition.
+// Change the package name, custom token types and the ragel state machine definition.
+// The FSM implementation at the bottom of the file should be left as-is.
+
 package ragel_test
 
-import (
-	"github.com/db47h/ragel"
-)
+import "github.com/db47h/ragel"
 
 // Custom token types.
+//
 const (
-	Ident ragel.Token = ragel.EOF + iota
+	Ident ragel.Token = iota
 	Int
 	Float
 	Symbol
@@ -16,8 +17,9 @@ const (
 	String
 )
 
-// The FSM definition of your language.
 %%{
+	#state machine definition for your language
+
 	machine lang;
 	include WChar "utf8.rl";
 
@@ -60,8 +62,7 @@ const (
 	};
 
 	# Whitespace is standard ws, newlines and control codes.
-	# any_count_line - 0x21..0x7e;
-	newline | 0x01..09 | 0x0b..0x1f | ' ' | 0x7f;
+	newline | 0x00..0x20 | 0x7f;
 
 	# Describe both c style comments and c++ style comments. The
 	# priority bump on tne terminator of the comments brings us
@@ -91,10 +92,15 @@ const (
 	*|;
 }%%
 
-// anything beyond this point should be left unchanged.
+%%# anything beyond this point should be left unchanged
 
 %%write data nofinal;
 
+// fsm implements ragel.FSM. This is the interface between the ragel generated
+// code for a given machine and ragel.Scanner.
+//
+// Create a new scanner by calling scanner.New(..., fsm{}).
+// 
 type fsm struct {}
 
 func (fsm) Init(s *ragel.Scanner) {

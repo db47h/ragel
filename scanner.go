@@ -1,7 +1,13 @@
 // Copyright 2018 Denis Bernard <db047h@gmail.com>
 // Licensed under the MIT license. See license text in the LICENSE file.
 
-// Package ragel provides a ragel based scanner for Go.
+// Package ragel provides a thin wrapper for ragel based scanners.
+//
+// The Scanner type provides all the functionality needed to read data from an
+// io.Reader, buffering, token position tracking (line and column) and error
+// handling.
+//
+// UTF8 input is supported via ragel's contib/unicode2ragel.rb.
 //
 package ragel
 
@@ -14,7 +20,10 @@ import (
 
 const bufferSize = 32768
 
-// A FSM provides an interface to ragel generated code.
+// A FSM provides an interface to ragel generated code for a given state
+// machine. The implementation is part of the ragel machine definition file.
+//
+// See lang_test.rl for a typical implementation.
 //
 type FSM interface {
 	Init(l *Scanner)
@@ -65,11 +74,11 @@ type Token int
 // Token types.
 //
 const (
-	Error Token = -1 + iota
+	Error Token = -2 + iota
 	EOF
 )
 
-// item represents a token.
+// An item wraps a token with its position and literal value.
 //
 type item struct {
 	off int
@@ -77,7 +86,7 @@ type item struct {
 	lit string
 }
 
-// Scanner wraps a scanner's state
+// Scanner holds the scanner's internal state while processing its input.
 //
 type Scanner struct {
 	queue
@@ -96,48 +105,50 @@ type Scanner struct {
 
 // New returns a new scanner for the given io.Reader and FSM.
 //
+// The FSM implementation is provided by the ragel generated code.
+//
 func New(fileName string, r io.Reader, f FSM) *Scanner {
-	l := &Scanner{
+	s := &Scanner{
 		r:        r,
 		fileName: fileName,
 		data:     make([]byte, bufferSize),
 		lines:    []int{0},
 		f:        f,
 	}
-	f.Init(l)
-	return l
+	f.Init(s)
+	return s
 }
 
 // Reset resets the scanner to the start of the input stream. It will panic if
 // the source reader is not an io.Seeker.
 //
-func (l *Scanner) Reset() {
-	l.queue.count = 0
-	l.queue.head = 0
-	l.queue.tail = 0
-	l.offset = 0
-	l.line = 0
-	l.lines = l.lines[:1]
-	l.sz = 0
+func (s *Scanner) Reset() {
+	s.queue.count = 0
+	s.queue.head = 0
+	s.queue.tail = 0
+	s.offset = 0
+	s.line = 0
+	s.lines = s.lines[:1]
+	s.sz = 0
 
-	r := l.r.(io.Seeker)
+	r := s.r.(io.Seeker)
 	r.Seek(0, io.SeekStart)
-	l.f.Init(l)
+	s.f.Init(s)
 }
 
 // Next returns the next token in the input stream.
 //
-func (l *Scanner) Next() (offset int, token Token, literal string) {
-	for l.count == 0 {
+func (s *Scanner) Next() (offset int, token Token, literal string) {
+	for s.count == 0 {
 		var (
 			n, p, pe, eof int
 			err           error
 		)
 
-		if l.sz < len(l.data) {
-			p = l.sz
+		if s.sz < len(s.data) {
+			p = s.sz
 			for {
-				n, err = l.r.Read(l.data[p:])
+				n, err = s.r.Read(s.data[p:])
 				if n != 0 || err != nil {
 					break
 				}
@@ -148,98 +159,98 @@ func (l *Scanner) Next() (offset int, token Token, literal string) {
 				eof = pe
 			}
 		} else {
-			p, pe, eof = l.sz, l.sz, l.sz
+			p, pe, eof = s.sz, s.sz, s.sz
 			err = errors.New("buffer overrun")
 		}
 
 	again:
-		p, pe = l.f.Run(l, p, pe, eof)
+		p, pe = s.f.Run(s, p, pe, eof)
 
-		if ss, se := l.f.States(); l.cs == se {
-			r, _ := utf8.DecodeRune(l.data[p:])
+		if ss, se := s.f.States(); s.cs == se {
+			r, _ := utf8.DecodeRune(s.data[p:])
 			if r == utf8.RuneError {
-				r = rune(l.data[p])
+				r = rune(s.data[p])
 			}
-			l.Errorf(p, "invalid character %#U", r)
+			s.Errorf(p, "invalid character %#U", r)
 			p++
-			l.cs = ss
+			s.cs = ss
 			if p < pe {
 				goto again
 			}
 		}
 
-		if l.ts == 0 {
-			l.sz = 0
-			l.offset += p
+		if s.ts == 0 {
+			s.sz = 0
+			s.offset += p
 		} else {
-			l.offset += l.ts
-			l.sz = pe - l.ts
-			copy(l.data[:], l.data[l.ts:pe])
-			l.te -= l.ts
-			l.ts = 0
+			s.offset += s.ts
+			s.sz = pe - s.ts
+			copy(s.data[:], s.data[s.ts:pe])
+			s.te -= s.ts
+			s.ts = 0
 		}
 
 		switch err {
 		case nil:
 		case io.EOF:
-			l.Emit(0, EOF, "EOF")
+			s.Emit(0, EOF, "EOF")
 		default:
-			l.Emit(0, Error, err.Error())
+			s.Emit(0, Error, err.Error())
 		}
 	}
 
-	return l.pop()
+	return s.pop()
 }
 
 // SetState saves the fsm state. This function must be called before returning
 // from FSM.Run and FSM.Init.
 //
-func (l *Scanner) SetState(cs, ts, te, act int) {
-	l.cs, l.ts, l.te, l.act = cs, ts, te, act
+func (s *Scanner) SetState(cs, ts, te, act int) {
+	s.cs, s.ts, s.te, s.act = cs, ts, te, act
 }
 
 // GetState gets the fsm state and buffer. This function must be called at
 // the beginning of FSM.Run.
 //
-func (l *Scanner) GetState() (cs, ts, te, act int, data []byte) {
-	return l.cs, l.ts, l.te, l.act, l.data
+func (s *Scanner) GetState() (cs, ts, te, act int, data []byte) {
+	return s.cs, s.ts, s.te, s.act, s.data
 }
 
 // Emit adds the given token to the output queue. The ts argument is usually
 // the ragel variable ts.
 //
-func (l *Scanner) Emit(ts int, typ Token, value string) {
-	l.push(item{off: l.offset + ts, tok: typ, lit: value})
+func (s *Scanner) Emit(ts int, typ Token, value string) {
+	s.push(item{off: s.offset + ts, tok: typ, lit: value})
 }
 
 // Errorf is a wrapper around Emit that emits error tokens. format and args
 // are passed through fmt.Sprintf to forom the literal value.
 //
-func (l *Scanner) Errorf(ts int, format string, args ...interface{}) {
-	l.push(item{off: l.offset + ts, tok: Error, lit: fmt.Sprintf(format, args...)})
+func (s *Scanner) Errorf(ts int, format string, args ...interface{}) {
+	s.push(item{off: s.offset + ts, tok: Error, lit: fmt.Sprintf(format, args...)})
 }
 
 // Newline increments the line count. The p argument should be the ragel
 // varaiable p.
 //
-func (l *Scanner) Newline(p int) {
-	l.lines = append(l.lines, l.offset+p+1)
-	l.line++
+func (s *Scanner) Newline(p int) {
+	s.lines = append(s.lines, s.offset+p+1)
+	s.line++
 }
 
 // Pos returns the line/column Position for the given offset.
 //
-func (l *Scanner) Pos(offset int) Position {
-	i, j := 0, len(l.lines)
+func (s *Scanner) Pos(offset int) Position {
+	i, j := 0, len(s.lines)
 	for i < j {
 		h := int(uint(i+j) >> 1)
-		if !(l.lines[h] > offset) {
+		if !(s.lines[h] > offset) {
 			i = h + 1
 		} else {
 			j = h
 		}
 	}
-	return Position{l.fileName, i, offset - l.lines[i-1] + 1}
+	return Position{s.fileName, i, offset - s.lines[i-1] + 1}
 }
 
 // Position represents the position of a token as its 1-based line and column numbers.
