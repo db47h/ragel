@@ -148,7 +148,10 @@ func (s *Scanner) Reset() {
 	s.sz = 0
 
 	r := s.r.(io.Seeker)
-	r.Seek(0, io.SeekStart)
+	_, err := r.Seek(0, io.SeekStart)
+	if err != nil {
+		panic(err)
+	}
 	s.f.Init(s)
 }
 
