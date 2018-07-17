@@ -7,12 +7,26 @@
 // io.Reader, buffering, token position tracking (line and column) and error
 // handling.
 //
+// The scanner reads input data in 32KiB chunks (the default buffer size), then
+// tokenizes it and queues the tokens found. Scanner.Next takes care of this:
+// it populates the queue if its empty, otherwise it just pops tokens and
+// returns them.
+//
+// Note that this limits the size of the largest possible token to about 32767
+// bytes.
+//
+// Error handling is done by returning a ragel.Error token. This can happen in
+// 3 cases: an error while reading from the input reader, the input buffer gets
+// full, or an illegal symbol is encountered. In the latter case, scanning
+// resumes at the following byte. The other two are non-recoverable errors:
+// following these, Scanner.Next returns ragel.EOF.
+//
 // UTF8 input is supported via ragel's contib/unicode2ragel.rb.
+// See lang_test.rl for an example use.
 //
 package ragel
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"unicode/utf8"
@@ -95,6 +109,7 @@ type Scanner struct {
 	offset   int
 	line     int
 	lines    []int
+	abort    bool
 
 	// FSM state
 	f               FSM
@@ -126,6 +141,7 @@ func (s *Scanner) Reset() {
 	s.queue.count = 0
 	s.queue.head = 0
 	s.queue.tail = 0
+	s.abort = false
 	s.offset = 0
 	s.line = 0
 	s.lines = s.lines[:1]
@@ -139,28 +155,29 @@ func (s *Scanner) Reset() {
 // Next returns the next token in the input stream.
 //
 func (s *Scanner) Next() (offset int, token Token, literal string) {
-	for s.count == 0 {
+	for s.count == 0 && !s.abort {
 		var (
 			n, p, pe, eof int
 			err           error
 		)
 
-		if s.sz < len(s.data) {
-			p = s.sz
-			for {
-				n, err = s.r.Read(s.data[p:])
-				if n != 0 || err != nil {
-					break
-				}
+		if s.sz >= len(s.data) {
+			s.Errorf(0, "buffer overrun")
+			s.abort = true
+			break
+		}
+
+		p = s.sz
+		for {
+			n, err = s.r.Read(s.data[p:])
+			if n != 0 || err != nil {
+				break
 			}
-			pe = p + n
-			eof = -1
-			if n == 0 {
-				eof = pe
-			}
-		} else {
-			p, pe, eof = s.sz, s.sz, s.sz
-			err = errors.New("buffer overrun")
+		}
+		pe = p + n
+		eof = -1
+		if n == 0 {
+			eof = pe
 		}
 
 	again:
@@ -190,16 +207,18 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 			s.ts = 0
 		}
 
-		switch err {
-		case nil:
-		case io.EOF:
-			s.Emit(0, EOF, "EOF")
-		default:
-			s.Emit(0, Error, err.Error())
+		if err != nil {
+			s.abort = true
+			if err != io.EOF {
+				s.Emit(0, Error, err.Error())
+			}
 		}
 	}
 
-	return s.pop()
+	if s.count > 0 {
+		return s.pop()
+	}
+	return s.offset, EOF, "EOF"
 }
 
 // SetState saves the fsm state. This function must be called before returning

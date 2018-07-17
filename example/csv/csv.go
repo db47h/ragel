@@ -22,17 +22,15 @@ const csv_en_main int = 1
 
 //line csv.rl:48
 
-// fsm implements ragel.FSM. This is the interface between the ragel generated
-// code for a given machine and ragel.Scanner.
+// here we use a private implemetation for ragel.FSM since the scanner and
+// parser are in the same package.
 //
-// Create a new scanner by calling scanner.New(..., fsm{}).
-// 
 type fsm struct {}
 
 func (fsm) Init(s *ragel.Scanner) {
 	var cs, ts, te, act int
 	
-//line csv.go:36
+//line csv.go:34
 	{
 	cs = csv_start
 	ts = 0
@@ -40,7 +38,7 @@ func (fsm) Init(s *ragel.Scanner) {
 	act = 0
 	}
 
-//line csv.rl:59
+//line csv.rl:57
 	s.SetState(cs, ts, te, act)
 }
 
@@ -48,10 +46,10 @@ func (fsm) States() (start, err int) {
 	return 1, -1
 }
 
-func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+func (fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	
-//line csv.go:55
+//line csv.go:53
 	{
 	if p == pe {
 		goto _test_eof
@@ -155,7 +153,7 @@ ts = 0
 //line NONE:1
 ts = p
 
-//line csv.go:159
+//line csv.go:157
 		switch data[p] {
 		case 10:
 			goto tr6
@@ -221,7 +219,7 @@ act = 6;
 			goto _test_eof4
 		}
 	st_case_4:
-//line csv.go:225
+//line csv.go:223
 		switch data[p] {
 		case 10:
 			goto tr2
@@ -245,7 +243,7 @@ tr2:
 			goto _test_eof0
 		}
 	st_case_0:
-//line csv.go:249
+//line csv.go:247
 		switch data[p] {
 		case 10:
 			goto tr2
@@ -265,7 +263,7 @@ act = 2;
 			goto _test_eof5
 		}
 	st_case_5:
-//line csv.go:269
+//line csv.go:267
 		if data[p] == 34 {
 			goto st0
 		}
@@ -374,7 +372,7 @@ act = 4;
 			goto _test_eof10
 		}
 	st_case_10:
-//line csv.go:378
+//line csv.go:376
 		switch data[p] {
 		case 32:
 			goto tr0
@@ -431,7 +429,7 @@ act = 4;
 
 	}
 
-//line csv.rl:69
+//line csv.rl:67
 	s.SetState(cs, ts, te, act)
 	return p, pe
 }

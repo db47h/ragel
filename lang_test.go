@@ -36,14 +36,14 @@ const lang_en_main int = 195
 
 //line lang_test.rl:98
 
-// fsm implements ragel.FSM. This is the interface between the ragel generated
+// FSM implements ragel.FSM. This is the interface between the ragel generated
 // code for a given machine and ragel.Scanner.
 //
 // Create a new scanner by calling scanner.New(..., fsm{}).
 // 
-type fsm struct {}
+type FSM struct {}
 
-func (fsm) Init(s *ragel.Scanner) {
+func (FSM) Init(s *ragel.Scanner) {
 	var cs, ts, te, act int
 	
 //line lang_test.go:50
@@ -58,11 +58,11 @@ func (fsm) Init(s *ragel.Scanner) {
 	s.SetState(cs, ts, te, act)
 }
 
-func (fsm) States() (start, err int) {
+func (FSM) States() (start, err int) {
 	return 195, 0
 }
 
-func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+func (FSM) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	
 //line lang_test.go:69

@@ -46,11 +46,9 @@ import "github.com/db47h/ragel"
 
 %%write data nofinal;
 
-// fsm implements ragel.FSM. This is the interface between the ragel generated
-// code for a given machine and ragel.Scanner.
+// here we use a private implemetation for ragel.FSM since the scanner and
+// parser are in the same package.
 //
-// Create a new scanner by calling scanner.New(..., fsm{}).
-// 
 type fsm struct {}
 
 func (fsm) Init(s *ragel.Scanner) {
@@ -63,7 +61,7 @@ func (fsm) States() (start, err int) {
 	return %%{ write start; }%%, %%{ write error; }%%
 }
 
-func (f fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+func (fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	%%write exec;
 	s.SetState(cs, ts, te, act)
