@@ -1,5 +1,8 @@
 # ragel-go
 
+[![godocb]][godoc]
+[![goreportb]][goreport]
+
 This is a thin wrapper for [ragel] based scanners in Go. It takes care of all
 the boiler plate code, letting the user focus on the ragel state machine
 definition.
@@ -255,4 +258,29 @@ The `Scanner` API has three users, each using a specific set of methods:
 This could be abstracted away using interfaces but it would affect performance
 for no real benefit. Performance is the reason to use ragel in the first place.
 
+## LICENSE
+
+Copyright 2018 Denis Bernard <db047h@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 [ragel]: http://www.colm.net/open-source/ragel/
+[godoc]: https://godoc.org/github.com/db47h/ragel
+[godocb]: https://godoc.org/github.com/db47h/ragel?status.svg
+[goreport]: https://goreportcard.com/report/github.com/db47h/ragel
+[goreportb]: https://goreportcard.com/badge/github.com/db47h/ragel
