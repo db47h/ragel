@@ -179,7 +179,7 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 		}
 		pe = p + n
 		eof = -1
-		if n == 0 {
+		if n == 0 || err == io.EOF {
 			eof = pe
 		}
 
