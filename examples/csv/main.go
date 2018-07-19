@@ -10,8 +10,6 @@ import (
 	"io"
 	"log"
 	"strings"
-
-	"github.com/db47h/ragel/example/csv"
 )
 
 func main() {
@@ -20,7 +18,7 @@ func main() {
 			 "a", "", """", "a ""quote""
 with newline"`
 	r := strings.NewReader(data)
-	p := csv.New("", r)
+	p := NewCSVParser("", r)
 
 	for {
 		rec, err := p.NextRecord()

@@ -1,6 +1,6 @@
 // Example CSV scanner with comma separated fields.
 
-package csv
+package main
 
 import "github.com/db47h/ragel"
 
