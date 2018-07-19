@@ -115,12 +115,12 @@ See lang_test.rl for an example use.
 
 ## How to
 
-In essence, the creating a scanner is as simple as creating a ragel machine
+In essence, creating a scanner is as simple as creating a ragel machine
 definition for your language of choice, along with a tiny stub interface.
 
 ### Ragel state machine definition
 
-Here is an abbreviated version for the c-like language mentioned above (with
+Here is an abbreviated version for the C-like language mentioned above (with
 support for comments, strings and char literals removed for brevity):
 
 ```go
@@ -169,12 +169,8 @@ const (
 
 %%write data nofinal;
 
-// CFSM implements ragel.FSM. This is the stub interface between the ragel
+// FSM implements ragel.FSM. This is the stub interface between the ragel
 // generated code for a given machine and ragel.Scanner.
-//
-// Create a new scanner by calling scanner.New(..., fsm{}).
-//
-// Unless you have a very good reason, this code should be used as-is
 //
 type FSM struct {}
 
@@ -203,7 +199,8 @@ following command:
     ragel -Z -G2 myc.rl
 ```
 
-This will generate a `myc.go` file.
+This will generate a `myc.go` file. I tend to use the `-G2` because it yields
+the fastest running code in most of my use cases. Your mileage may vary.
 
 You might also want add `go:generate` directives in some other `.go` file in the
 same package:
@@ -215,6 +212,11 @@ same package:
 
 The second directive changes the fisrt line of the [generated code][codegen] so that it
 gets ignored by the Go tooling.
+
+The `FSM` struct defined in the ragel file is the stub interface between the
+generated code and ragel.Scanner. Besides changeing the struct name to suit your
+needs (e.g. make it private), this code should be used as-is. If you feel that
+you need to change it for some reason, please file an issue.
 
 ### Scanning
 
