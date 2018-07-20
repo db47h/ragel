@@ -8,18 +8,20 @@
 // handling.
 //
 // The scanner reads input data in 32KiB chunks (the default buffer size), then
-// tokenizes it and queues the tokens found. Scanner.Next takes care of this:
-// it populates the queue if its empty, otherwise it just pops tokens and
-// returns them.
+// tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
 //
 // Note that this limits the size of the largest possible token to about 32767
-// bytes.
+// bytes (and any token longer than this will not necessarily cause an error).
 //
 // Error handling is done by returning a ragel.Error token. This can happen in
-// 3 cases: an error while reading from the input reader, the input buffer gets
+// 3 cases: an IO error while reading from the input reader, the input buffer gets
 // full, or an illegal symbol is encountered. In the latter case, scanning
-// resumes at the following byte. The other two are non-recoverable errors:
-// following these, Scanner.Next returns ragel.EOF.
+// resumes at the following byte. The other two are non-recoverable errors; any
+// subsequent call to scanner.Next returns ragel.EOF.
+//
+// Errors can also be generated from the state machine's actions, in which case the
+// caller decides if an error is fatal or not. For non-fatal errors, callers must
+// update ragel's p variable or issue an appropriate fgoto).
 //
 // UTF8 input is supported via ragel's contib/unicode2ragel.rb.
 // See lang_test.rl for an example use.
@@ -165,8 +167,7 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 		)
 
 		if s.sz >= len(s.data) {
-			s.Errorf(0, "buffer overrun")
-			s.abort = true
+			s.Errorf(0, true, "buffer overrun")
 			break
 		}
 
@@ -191,7 +192,7 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 			if r == utf8.RuneError {
 				r = rune(s.data[p])
 			}
-			s.Errorf(p, "invalid character %#U", r)
+			s.Errorf(p, false, "invalid character %#U", r)
 			p++
 			s.cs = ss
 			if p < pe {
@@ -213,7 +214,7 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 		if err != nil {
 			s.abort = true
 			if err != io.EOF {
-				s.Emit(0, Error, err.Error())
+				s.Errorf(0, true, err.Error())
 			}
 		}
 	}
@@ -245,15 +246,21 @@ func (s *Scanner) Emit(ts int, typ Token, value string) {
 	s.push(item{off: s.offset + ts, tok: typ, lit: value})
 }
 
-// Errorf is a wrapper around Emit that emits error tokens. format and args
-// are passed through fmt.Sprintf to forom the literal value.
+// Errorf emits an Error token at position p. If the fatal argument is true,
+// any subsequent call to Scanner.Next will return an EOF token, otherwise
+// scanning will resume from position p (which the caller must update
+// accordingly). The format and args arguments are passed through fmt.Sprintf to
+// form the tokens's literal value.
 //
-func (s *Scanner) Errorf(ts int, format string, args ...interface{}) {
-	s.push(item{off: s.offset + ts, tok: Error, lit: fmt.Sprintf(format, args...)})
+func (s *Scanner) Errorf(p int, fatal bool, format string, args ...interface{}) {
+	if !s.abort && fatal {
+		s.abort = true
+	}
+	s.push(item{off: s.offset + p, tok: Error, lit: fmt.Sprintf(format, args...)})
 }
 
 // Newline increments the line count. The p argument should be the ragel
-// varaiable p.
+// variable p.
 //
 func (s *Scanner) Newline(p int) {
 	s.lines = append(s.lines, s.offset+p+1)
