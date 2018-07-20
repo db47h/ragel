@@ -21,7 +21,7 @@ const (
 	#state machine definition for your language
 
 	machine lang;
-	include WChar "utf8.rl";
+	include WChar "contrib/utf8.rl";
 
 	newline = '\n' @{ s.Newline(p) };
 	any_count_line = any | newline;
