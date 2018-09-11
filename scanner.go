@@ -26,7 +26,7 @@
 // UTF8 input is supported via ragel's contib/unicode2ragel.rb.
 // See lang_test.rl for an example use.
 //
-package ragel // import "github.com/db47h/ragel"
+package ragel
 
 import (
 	"fmt"
