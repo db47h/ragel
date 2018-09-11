@@ -11,7 +11,7 @@
 // tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
 //
 // Note that this limits the size of the largest possible token to about 32767
-// bytes (and any token longer than this will not necessarily cause an error).
+// bytes (but any token longer than this will not necessarily cause an error).
 //
 // Error handling is done by returning a ragel.Error token. This can happen in
 // 3 cases: an IO error while reading from the input reader, the input buffer gets
@@ -36,30 +36,30 @@ import (
 
 const bufferSize = 32768
 
-// A FSM provides an interface to ragel generated code for a given state
+// Interface provides an interface to generated code for a given ragel state
 // machine. The implementation is part of the ragel machine definition file.
 //
 // An idiomatic implementation is as follows:
 //
-//	type FSM struct {}
+//	type stub struct {}
 //
-//	func (FSM) Init(s *ragel.Scanner) (int, int) {
+//	func (stub) Init(s *ragel.State) (int, int) {
 //		var cs, ts, te, act int
 //		%%write init;
-//		s.SetState(cs, ts, te, act)
+//		s.SaveVars(cs, ts, te, act)
 //		return %%{ write start; }%%, %%{ write error; }%%
 //	}
 //
-//	func (FSM) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
-//		cs, ts, te, act, data := s.GetState()
+//	func (stub) Run(s *ragel.State, p, pe, eof int) (int, int) {
+//		cs, ts, te, act, data := s.GetVars()
 //		%%write exec;
-//		s.SetState(cs, ts, te, act)
+//		s.SaveVars(cs, ts, te, act)
 //		return p, pe
 //	}
 //
-type FSM interface {
-	Init(s *Scanner) (start, err int)             // Initialize the FSM. Returns the start and error state indices.
-	Run(s *Scanner, p, pe, eof int) (np, npe int) // runs the scanner on the current buffer
+type Interface interface {
+	Init(s *State) (start, err int)             // Initialize the FSM. Returns the start and error state indices.
+	Run(s *State, p, pe, eof int) (np, npe int) // runs the scanner on the current buffer
 }
 
 // queue is a FIFO queue.
@@ -117,9 +117,32 @@ type item struct {
 	lit string
 }
 
-// Scanner holds the scanner's internal state while processing its input.
+// Scanner provides the API for scanner clients.
 //
 type Scanner struct {
+	s *State
+}
+
+// Reset resets the scanner to the start of the input stream. It will panic if
+// the source reader is not an io.Seeker.
+//
+func (s *Scanner) Reset() { s.s.reset() }
+
+// Next returns the next token in the input stream.
+//
+func (s *Scanner) Next() (offset int, token Token, literal string) {
+	return s.s.next()
+}
+
+// Pos returns the line/column Position for the given offset.
+//
+func (s *Scanner) Pos(offset int) Position {
+	return s.s.pos(offset)
+}
+
+// State holds a scanner's internal state while processing its input.
+//
+type State struct {
 	queue
 	fileName string
 	r        io.Reader
@@ -127,35 +150,34 @@ type Scanner struct {
 	line     int
 	lines    []int
 	abort    bool
-
-	// FSM state
-	f               FSM
+	iface    Interface
+	// ragel state
 	cs, ts, te, act int    // standard ragel variables
 	data            []byte // standard ragel data ptr
 	ss, se          int    // start and end state indices
 	sz              int    // size of unprocessed data
 }
 
-// New returns a new scanner for the given io.Reader and FSM.
+// New returns a new scanner for the given io.Reader and Interface.
 //
-// The FSM implementation is provided by the ragel generated code.
+// The Interface implementation must be provided by the ragel generated code.
 //
-func New(fileName string, r io.Reader, f FSM) *Scanner {
-	s := &Scanner{
+func New(fileName string, r io.Reader, iface Interface) *Scanner {
+	s := &State{
 		r:        r,
 		fileName: fileName,
 		data:     make([]byte, bufferSize),
 		lines:    []int{0},
-		f:        f,
+		iface:    iface,
 	}
-	s.ss, s.se = f.Init(s)
-	return s
+	s.ss, s.se = iface.Init(s)
+	return &Scanner{s}
 }
 
-// Reset resets the scanner to the start of the input stream. It will panic if
+// reset resets the scanner to the start of the input stream. It will panic if
 // the source reader is not an io.Seeker.
 //
-func (s *Scanner) Reset() {
+func (s *State) reset() {
 	s.queue.count = 0
 	s.queue.head = 0
 	s.queue.tail = 0
@@ -170,12 +192,12 @@ func (s *Scanner) Reset() {
 	if err != nil {
 		panic(err)
 	}
-	s.ss, s.se = s.f.Init(s)
+	s.ss, s.se = s.iface.Init(s)
 }
 
-// Next returns the next token in the input stream.
+// next returns the next token in the input stream.
 //
-func (s *Scanner) Next() (offset int, token Token, literal string) {
+func (s *State) next() (offset int, token Token, literal string) {
 	for s.count == 0 && !s.abort {
 		var (
 			n, p, pe, eof int
@@ -201,7 +223,7 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 		}
 
 	again:
-		p, pe = s.f.Run(s, p, pe, eof)
+		p, pe = s.iface.Run(s, p, pe, eof)
 
 		if s.cs == s.se {
 			r, _ := utf8.DecodeRune(s.data[p:])
@@ -241,24 +263,26 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 	return s.offset, EOF, "EOF"
 }
 
-// SetState saves the fsm state. This function must be called before returning
-// from FSM.Run and FSM.Init.
+// SaveVars saves the ragel state variables. These variables must be saved
+// between calls to Interface.Run, so SaveVars must be called before returning
+// from Interface.Run and Interface.Init.
 //
-func (s *Scanner) SetState(cs, ts, te, act int) {
+func (s *State) SaveVars(cs, ts, te, act int) {
 	s.cs, s.ts, s.te, s.act = cs, ts, te, act
 }
 
-// GetState gets the fsm state and buffer. This function must be called at
-// the beginning of FSM.Run.
+// GetVars gets the ragel state variables and input buffer. This function must
+// be called at the beginning of Interface.Run in order to initialize these
+// variables properly.
 //
-func (s *Scanner) GetState() (cs, ts, te, act int, data []byte) {
+func (s *State) GetVars() (cs, ts, te, act int, data []byte) {
 	return s.cs, s.ts, s.te, s.act, s.data
 }
 
 // Emit adds the given token to the output queue. The ts argument is usually
 // the ragel variable ts.
 //
-func (s *Scanner) Emit(ts int, typ Token, value string) {
+func (s *State) Emit(ts int, typ Token, value string) {
 	s.push(item{off: s.offset + ts, tok: typ, lit: value})
 }
 
@@ -268,7 +292,7 @@ func (s *Scanner) Emit(ts int, typ Token, value string) {
 // accordingly). The format and args arguments are passed through fmt.Sprintf to
 // form the tokens's literal value.
 //
-func (s *Scanner) Errorf(p int, fatal bool, format string, args ...interface{}) {
+func (s *State) Errorf(p int, fatal bool, format string, args ...interface{}) {
 	if !s.abort && fatal {
 		s.abort = true
 	}
@@ -278,14 +302,14 @@ func (s *Scanner) Errorf(p int, fatal bool, format string, args ...interface{}) 
 // Newline increments the line count. The p argument should be the ragel
 // variable p.
 //
-func (s *Scanner) Newline(p int) {
+func (s *State) Newline(p int) {
 	s.lines = append(s.lines, s.offset+p+1)
 	s.line++
 }
 
-// Pos returns the line/column Position for the given offset.
+// pos returns the line/column Position for the given offset.
 //
-func (s *Scanner) Pos(offset int) Position {
+func (s *State) pos(offset int) Position {
 	i, j := 0, len(s.lines)
 	for i < j {
 		h := int(uint(i+j) >> 1)

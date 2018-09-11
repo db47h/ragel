@@ -15,7 +15,7 @@ import (
 func TestNext(t *testing.T) {
 	input := "\x88a = 4;\nçcc = xyz + 17.0\n\x81"
 	r := strings.NewReader(input)
-	l := ragel.New("", r, FSM{})
+	l := ragel.New("", r, stub{})
 
 	res := []struct {
 		pos string
@@ -50,7 +50,7 @@ func TestNext(t *testing.T) {
 func BenchmarkNext(b *testing.B) {
 	input := "a = 4; çcc := xyz + 17\n"
 	r := strings.NewReader(input)
-	l := ragel.New("INPUT", r, FSM{})
+	l := ragel.New("INPUT", r, stub{})
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -69,7 +69,7 @@ func BenchmarkNext_largeishFile(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	l := ragel.New("INPUT", r, FSM{})
+	l := ragel.New("INPUT", r, stub{})
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {

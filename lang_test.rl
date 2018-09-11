@@ -101,18 +101,18 @@ const (
 //
 // Create a new scanner by calling scanner.New(..., fsm{}).
 // 
-type FSM struct {}
+type stub struct {}
 
-func (FSM) Init(s *ragel.Scanner) (int, int) {
+func (stub) Init(s *ragel.State) (int, int) {
 	var cs, ts, te, act int
 	%%write init;
-	s.SetState(cs, ts, te, act)
+	s.SaveVars(cs, ts, te, act)
 	return %%{ write start; }%%, %%{ write error; }%%
 }
 
-func (FSM) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
-	cs, ts, te, act, data := s.GetState()
+func (stub) Run(s *ragel.State, p, pe, eof int) (int, int) {
+	cs, ts, te, act, data := s.GetVars()
 	%%write exec;
-	s.SetState(cs, ts, te, act)
+	s.SaveVars(cs, ts, te, act)
 	return p, pe
 }

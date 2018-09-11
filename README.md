@@ -4,14 +4,14 @@
 [![goreportb]][goreport]
 
 This package provides a driver for [ragel] based scanners in Go for streamed
-input. It takes care of all the boiler plate code, letting the user focus on
+input. It takes care of all the boilerplate code, letting the user focus on
 the ragel state machine definition.
 
-## Intro
+## Rationale
 
 Streaming input data to ragel -- i.e. reading from an io.Reader as opposed to
 loading the whole input into memory, requires a *driver*, a piece of code that
-buffers input and manipulates pointers for the ragel engine.
+buffers input and manipulates pointers for the ragel state machine.
 
 Here is the Go version of the main loop from the C-like scanner in the ragel
 examples:
@@ -83,20 +83,19 @@ and column position for these tokens.
 
 ## Implementation
 
-The `Scanner` type provides all the functionality needed to read data from an
-io.Reader, buffering, token position tracking (line and column) and error
-handling.
+This package all the functionality needed to read data from an io.Reader,
+buffering, token position tracking (line and column) and error handling.
 
 The scanner reads input data in 32KiB chunks (the default buffer size), then
-tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
+tokenizes the whole buffer and pushes tokens in a FIFO queue.
 
 Note that this limits the size of the largest possible token to about 32767
 bytes (and any token longer than this will not necessarily cause an error).
 
 An alternative to using a queue would be to run the scanning loop in a goroutine
-and use a channel to emit tokens (like text/template/parse in Go's standard
-library). This approach is however slower than using a queue by an order of
-magnitude.
+and use a channel to emit tokens -- like text/template/parse in Go's standard
+library. This approach is however slower than using a queue by an order of
+magnitude (channels are great, just not here).
 
 Error handling is done by returning a `ragel.Error` token. This can happen in
 3 cases: an IO error while reading from the input reader, the input buffer gets
@@ -108,8 +107,12 @@ Errors can also be generated from the state machine's actions, in which case the
 caller decides if an error is fatal or not. For non-fatal errors, callers must
 update ragel's `p` variable or issue an appropriate `fgoto`).
 
-UTF8 input is supported via ragel's contib/unicode2ragel.rb.
-See lang_test.rl for an example use.
+The standard ragel state variables `data`, `p`, `pe`, `eof`, `cs`, `ts`, `te`
+and `act` are directly available in state machine definitions, i.e. `data[p]`
+is the current character.
+
+UTF8 input is supported via ragel's contib/unicode2ragel.rb. See lang_test.rl
+for an example use. File offsets returned by `Scanner.Next()` are in bytes.
 
 ## How to
 
@@ -122,10 +125,10 @@ Here is an abbreviated version for the C-like language mentioned above (with
 support for comments, strings and char literals removed for brevity):
 
 ```go
-// Package myc provides a scanner for my-C language.
-package scan // import "github.com/me/myc/scan"
+// Package scan provides a scanner for my-C language.
+package scan
 
-import "github.com/db47h/ragel"
+import "github.com/db47h/ragel/v2"
 
 // Tokens for my-C
 //
@@ -135,7 +138,7 @@ const (
     Symbol
 )
 
-// state machine definition
+// ragel state machine definition.
 %%{
     machine lang;
     include WChar "utf8.rl";
@@ -157,6 +160,7 @@ const (
         s.Emit(ts, Ident, string(data[ts:te]))
     };
 
+    # ignore white space and control codes
     newline | 0x00..0x20 | 0x7f;
 
     udigit+ ('.' udigit+)* {
@@ -167,19 +171,19 @@ const (
 
 %%write data nofinal;
 
-// FSM implements ragel.FSM. This is the stub interface between the ragel
-// generated code for a given machine and ragel.Scanner.
+// MyC implements ragel.Interface. This is the stub interface between the
+// generated code for a ragel state machine and ragel.State.
 //
-type FSM struct {}
+type MyC struct {}
 
-func (FSM) Init(s *ragel.Scanner) (int, int) {
+func (MyC) Init(s *ragel.State) (int, int) {
     var cs, ts, te, act int
     %%write init;
     s.SetState(cs, ts, te, act)
     return %%{ write start; }%%, %%{ write error; }%%
 }
 
-func (FSM) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+func (MyC) Run(s *ragel.State, p, pe, eof int) (int, int) {
     cs, ts, te, act, data := s.GetState()
     %%write exec;
     s.SetState(cs, ts, te, act)
@@ -208,28 +212,28 @@ same package:
 The second directive changes the first line of the [generated code][codegen] so that it
 gets ignored by the Go tooling.
 
-The `FSM` struct defined in the ragel file is the stub interface between the
-generated code and `ragel.Scanner`. Besides changing the struct name to suit
+The `MyC` struct defined in the ragel file is the stub interface between the
+generated code and `ragel.State`. Besides changing the struct name to suit
 your needs (e.g. make it private), this code should be used as-is. If you feel
 that you need to change it for some reason, please file an issue.
 
 ### Scanning
 
-Create a new `ragel.Scanner` and pass it the `FSM` struct defined above:
+Create a new `ragel.Scanner` and pass it a `MyC` struct as defined above:
 
 ```go
-package main
+package main // import "github.com/me/myc"
 
 import (
     "os"
     "fmt"
 
-    "github.com/db47h/ragel"
+    "github.com/db47h/ragel/v2"
     "github.com/me/myc/scan"
 )
 
 func main() {
-    s := ragel.New("stdin", os.Stdin, scan.FSM{})
+    s := ragel.New("stdin", os.Stdin, scan.MyC{})
     for {
         pos, tok, literal := s.Next()
         switch tok {
@@ -249,22 +253,23 @@ That's it.
 
 ## API
 
-The `Scanner` API has three users, each using a specific set of methods:
+Ragel state machine definitions use the `State` type and its methods `Emit`,
+`Errorf` and `Newline`. The first two are mostly self-explanatory.
+Implementations that need accurate line and column tracking must take care of
+calling Newline at the right place, especially when ignoring white space (see
+how this is done in the above example).
 
-- the ragel state machine (actions depending on scanned input)
-  - `Emit`
-  - `Errorf`
-  - `Newline`
-- the stub interface
-  - `SetState`
-  - `GetState`
-- the scanner client (code that wants to scan some input)
-  - `New`
-  - `Next`
-  - `Pos`
+State machine definitions must include an `Interface` implementation. The
+example implementation provided in the [`Interface`][Interface] documentation
+should be used as-is (feel free to name the type to suit your needs).
 
-This could be abstracted away using interfaces but it would affect performance
-for no real benefit. Performance is the reason to use ragel in the first place.
+The `State.SaveVars` and `State.GetVars` methods manage the standard ragel state
+variables and are only meant to be used by the stub Interface.
+
+The `Scanner` type wraps things together and provides the scanning client API.
+Behind the scenes, it's just a thin wrapper around `State` whose sole purpose is
+separation of concerns between the API used by state machine definitions from
+the API used by parsers.
 
 ## LICENSE
 
@@ -289,6 +294,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 [ragel]: http://www.colm.net/open-source/ragel/
 [godoc]: https://godoc.org/github.com/db47h/ragel
+[Interface]: https://godoc.org/github.com/db47h/ragel#Interface
 [godocb]: https://godoc.org/github.com/db47h/ragel?status.svg
 [goreport]: https://goreportcard.com/report/github.com/db47h/ragel
 [goreportb]: https://goreportcard.com/badge/github.com/db47h/ragel

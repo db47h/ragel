@@ -41,9 +41,9 @@ const lang_en_main int = 195
 //
 // Create a new scanner by calling scanner.New(..., fsm{}).
 // 
-type FSM struct {}
+type stub struct {}
 
-func (FSM) Init(s *ragel.Scanner) (int, int) {
+func (stub) Init(s *ragel.State) (int, int) {
 	var cs, ts, te, act int
 	
 //line lang_test.go:50
@@ -55,12 +55,12 @@ func (FSM) Init(s *ragel.Scanner) (int, int) {
 	}
 
 //line lang_test.rl:109
-	s.SetState(cs, ts, te, act)
+	s.SaveVars(cs, ts, te, act)
 	return 195, 0
 }
 
-func (FSM) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
-	cs, ts, te, act, data := s.GetState()
+func (stub) Run(s *ragel.State, p, pe, eof int) (int, int) {
+	cs, ts, te, act, data := s.GetVars()
 	
 //line lang_test.go:66
 	{
@@ -5025,6 +5025,6 @@ tr177:
 	}
 
 //line lang_test.rl:116
-	s.SetState(cs, ts, te, act)
+	s.SaveVars(cs, ts, te, act)
 	return p, pe
 }
