@@ -149,7 +149,7 @@ type state struct {
 	// ragel state
 	cs, ts, te, act int    // standard ragel variables
 	data            []byte // standard ragel data ptr
-	ss, se          int    // start and end state indices
+	ss, se          int    // start and error state indices
 	sz              int    // size of unprocessed data
 }
 

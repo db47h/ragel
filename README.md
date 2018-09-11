@@ -305,12 +305,12 @@ possible in order to limit potential bugs and avoid painful updates.
 The `ragel.Interface` implementation discussed above brings a `*State` instance
 `s`, into the scope of actions in ragel state machine definitions. Actions can
 use its `Emit`, `Errorf` and `Newline` methods. The first two are mostly
-self-explanatory. Users need accurate line and column tracking must take care of
-calling Newline at the right place, especially when ignoring white space (see
-how this is done in the above example).
+self-explanatory. Users who need accurate line and column tracking must take
+care of calling `Newline` at the right place, especially when ignoring white
+space (see how this is done in the above example).
 
 The `State.SaveVars` and `State.GetVars` methods manage the standard ragel state
-variables and are only meant to be used by the ragel.Interface implementation.
+variables and are only meant to be used by the `ragel.Interface` implementation.
 As such, they must not be used by client code and should be considered private
 for all intents and purposes.
 
