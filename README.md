@@ -172,13 +172,10 @@ const (
 //
 type FSM struct {}
 
-func (FSM) Init(s *ragel.Scanner) {
+func (FSM) Init(s *ragel.Scanner) (int, int) {
     var cs, ts, te, act int
     %%write init;
     s.SetState(cs, ts, te, act)
-}
-
-func (FSM) States() (start, err int) {
     return %%{ write start; }%%, %%{ write error; }%%
 }
 

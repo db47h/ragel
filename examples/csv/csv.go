@@ -4,7 +4,7 @@
 
 package main
 
-import "github.com/db47h/ragel"
+import "github.com/db47h/ragel/v2"
 
 
 //line csv.rl:43
@@ -27,7 +27,7 @@ const csv_en_main int = 1
 //
 type fsm struct {}
 
-func (fsm) Init(s *ragel.Scanner) {
+func (fsm) Init(s *ragel.Scanner) (int, int) {
 	var cs, ts, te, act int
 	
 //line csv.go:34
@@ -40,16 +40,13 @@ func (fsm) Init(s *ragel.Scanner) {
 
 //line csv.rl:57
 	s.SetState(cs, ts, te, act)
-}
-
-func (fsm) States() (start, err int) {
 	return 1, -1
 }
 
 func (fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	
-//line csv.go:53
+//line csv.go:50
 	{
 	if p == pe {
 		goto _test_eof
@@ -153,7 +150,7 @@ ts = 0
 //line NONE:1
 ts = p
 
-//line csv.go:157
+//line csv.go:154
 		switch data[p] {
 		case 10:
 			goto tr6
@@ -219,7 +216,7 @@ act = 6;
 			goto _test_eof4
 		}
 	st_case_4:
-//line csv.go:223
+//line csv.go:220
 		switch data[p] {
 		case 10:
 			goto tr2
@@ -243,7 +240,7 @@ tr2:
 			goto _test_eof0
 		}
 	st_case_0:
-//line csv.go:247
+//line csv.go:244
 		switch data[p] {
 		case 10:
 			goto tr2
@@ -263,7 +260,7 @@ act = 2;
 			goto _test_eof5
 		}
 	st_case_5:
-//line csv.go:267
+//line csv.go:264
 		if data[p] == 34 {
 			goto st0
 		}
@@ -372,7 +369,7 @@ act = 4;
 			goto _test_eof10
 		}
 	st_case_10:
-//line csv.go:376
+//line csv.go:373
 		switch data[p] {
 		case 32:
 			goto tr0
@@ -429,7 +426,7 @@ act = 4;
 
 	}
 
-//line csv.rl:67
+//line csv.rl:64
 	s.SetState(cs, ts, te, act)
 	return p, pe
 }

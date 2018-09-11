@@ -6,7 +6,7 @@
 
 package ragel_test
 
-import "github.com/db47h/ragel"
+import "github.com/db47h/ragel/v2"
 
 // Custom token types.
 //
@@ -43,7 +43,7 @@ const lang_en_main int = 195
 // 
 type FSM struct {}
 
-func (FSM) Init(s *ragel.Scanner) {
+func (FSM) Init(s *ragel.Scanner) (int, int) {
 	var cs, ts, te, act int
 	
 //line lang_test.go:50
@@ -56,16 +56,13 @@ func (FSM) Init(s *ragel.Scanner) {
 
 //line lang_test.rl:109
 	s.SetState(cs, ts, te, act)
-}
-
-func (FSM) States() (start, err int) {
 	return 195, 0
 }
 
 func (FSM) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
 	cs, ts, te, act, data := s.GetState()
 	
-//line lang_test.go:69
+//line lang_test.go:66
 	{
 	if p == pe {
 		goto _test_eof
@@ -605,7 +602,7 @@ act = 0
 //line NONE:1
 ts = p
 
-//line lang_test.go:609
+//line lang_test.go:606
 		switch data[p] {
 		case 10:
 			goto tr179
@@ -742,7 +739,7 @@ tr1:
 			goto _test_eof1
 		}
 	st_case_1:
-//line lang_test.go:746
+//line lang_test.go:743
 		switch data[p] {
 		case 10:
 			goto tr1
@@ -770,7 +767,7 @@ tr5:
 			goto _test_eof3
 		}
 	st_case_3:
-//line lang_test.go:774
+//line lang_test.go:771
 		switch data[p] {
 		case 10:
 			goto tr5
@@ -799,7 +796,7 @@ te = p+1
 			goto _test_eof196
 		}
 	st_case_196:
-//line lang_test.go:803
+//line lang_test.go:800
 		switch data[p] {
 		case 42:
 			goto tr213
@@ -826,7 +823,7 @@ te = p+1
 			goto _test_eof197
 		}
 	st_case_197:
-//line lang_test.go:830
+//line lang_test.go:827
 		switch data[p] {
 		case 46:
 			goto st6
@@ -865,7 +862,7 @@ te = p+1
 			goto _test_eof199
 		}
 	st_case_199:
-//line lang_test.go:869
+//line lang_test.go:866
 		if data[p] == 46 {
 			goto st6
 		}
@@ -921,7 +918,7 @@ act = 2;
 			goto _test_eof201
 		}
 	st_case_201:
-//line lang_test.go:925
+//line lang_test.go:922
 		switch data[p] {
 		case 95:
 			goto tr15
@@ -4393,7 +4390,7 @@ ts = 0
 			goto _test_eof193
 		}
 	st_case_193:
-//line lang_test.go:4397
+//line lang_test.go:4394
 		switch data[p] {
 		case 10:
 			goto tr175
@@ -4424,7 +4421,7 @@ tr177:
 			goto _test_eof202
 		}
 	st_case_202:
-//line lang_test.go:4428
+//line lang_test.go:4425
 		goto st0
 	st_out:
 	_test_eof195: cs = 195; goto _test_eof
@@ -5027,7 +5024,7 @@ tr177:
 	_out: {}
 	}
 
-//line lang_test.rl:119
+//line lang_test.rl:116
 	s.SetState(cs, ts, te, act)
 	return p, pe
 }

@@ -14,7 +14,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/db47h/ragel"
+	"github.com/db47h/ragel/v2"
 )
 
 // CSV tokens

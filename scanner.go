@@ -39,12 +39,27 @@ const bufferSize = 32768
 // A FSM provides an interface to ragel generated code for a given state
 // machine. The implementation is part of the ragel machine definition file.
 //
-// See lang_test.rl for a typical implementation.
+// An idiomatic implementation is as follows:
+//
+//	type FSM struct {}
+//
+//	func (FSM) Init(s *ragel.Scanner) (int, int) {
+//		var cs, ts, te, act int
+//		%%write init;
+//		s.SetState(cs, ts, te, act)
+//		return %%{ write start; }%%, %%{ write error; }%%
+//	}
+//
+//	func (FSM) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
+//		cs, ts, te, act, data := s.GetState()
+//		%%write exec;
+//		s.SetState(cs, ts, te, act)
+//		return p, pe
+//	}
 //
 type FSM interface {
-	Init(l *Scanner)
-	States() (start, err int)
-	Run(l *Scanner, p, pe, eof int) (np, npe int)
+	Init(s *Scanner) (start, err int)             // Initialize the FSM. Returns the start and error state indices.
+	Run(s *Scanner, p, pe, eof int) (np, npe int) // runs the scanner on the current buffer
 }
 
 // queue is a FIFO queue.
@@ -115,9 +130,10 @@ type Scanner struct {
 
 	// FSM state
 	f               FSM
-	cs, ts, te, act int
-	data            []byte
-	sz              int // size of unprocessed data
+	cs, ts, te, act int    // standard ragel variables
+	data            []byte // standard ragel data ptr
+	ss, se          int    // start and end state indices
+	sz              int    // size of unprocessed data
 }
 
 // New returns a new scanner for the given io.Reader and FSM.
@@ -132,7 +148,7 @@ func New(fileName string, r io.Reader, f FSM) *Scanner {
 		lines:    []int{0},
 		f:        f,
 	}
-	f.Init(s)
+	s.ss, s.se = f.Init(s)
 	return s
 }
 
@@ -154,7 +170,7 @@ func (s *Scanner) Reset() {
 	if err != nil {
 		panic(err)
 	}
-	s.f.Init(s)
+	s.ss, s.se = s.f.Init(s)
 }
 
 // Next returns the next token in the input stream.
@@ -187,14 +203,14 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 	again:
 		p, pe = s.f.Run(s, p, pe, eof)
 
-		if ss, se := s.f.States(); s.cs == se {
+		if s.cs == s.se {
 			r, _ := utf8.DecodeRune(s.data[p:])
 			if r == utf8.RuneError {
 				r = rune(s.data[p])
 			}
 			s.Errorf(p, false, "invalid character %#U", r)
 			p++
-			s.cs = ss
+			s.cs = s.ss
 			if p < pe {
 				goto again
 			}

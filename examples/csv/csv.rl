@@ -2,7 +2,7 @@
 
 package main
 
-import "github.com/db47h/ragel"
+import "github.com/db47h/ragel/v2"
 
 %%{
 	machine csv;
@@ -51,13 +51,10 @@ import "github.com/db47h/ragel"
 //
 type fsm struct {}
 
-func (fsm) Init(s *ragel.Scanner) {
+func (fsm) Init(s *ragel.Scanner) (int, int) {
 	var cs, ts, te, act int
 	%%write init;
 	s.SetState(cs, ts, te, act)
-}
-
-func (fsm) States() (start, err int) {
 	return %%{ write start; }%%, %%{ write error; }%%
 }
 
