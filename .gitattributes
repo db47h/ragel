@@ -1,1 +1,2 @@
 /lang_test.go linguist-generated=true
+*.rl linguist-language=Go
