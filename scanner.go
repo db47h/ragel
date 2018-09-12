@@ -119,30 +119,15 @@ type item struct {
 
 // Scanner provides the API for scanner clients.
 //
-type Scanner struct {
-	s *State
-}
-
-// Reset resets the scanner to the start of the input stream. It will panic if
-// the source reader is not an io.Seeker.
-//
-func (s *Scanner) Reset() { s.s.reset() }
-
-// Next returns the next token in the input stream.
-//
-func (s *Scanner) Next() (offset int, token Token, literal string) {
-	return s.s.next()
-}
-
-// Pos returns the line/column Position for the given offset.
-//
-func (s *Scanner) Pos(offset int) Position {
-	return s.s.pos(offset)
-}
+type Scanner state
 
 // State holds a scanner's internal state while processing its input.
 //
-type State struct {
+type State state
+
+// state holds a scanner's internal state while processing its input.
+//
+type state struct {
 	queue
 	fileName string
 	r        io.Reader
@@ -163,21 +148,21 @@ type State struct {
 // The Interface implementation must be provided by the ragel generated code.
 //
 func New(fileName string, r io.Reader, iface Interface) *Scanner {
-	s := &State{
+	s := &state{
 		r:        r,
 		fileName: fileName,
 		data:     make([]byte, bufferSize),
 		lines:    []int{0},
 		iface:    iface,
 	}
-	s.ss, s.se = iface.Init(s)
-	return &Scanner{s}
+	s.ss, s.se = iface.Init((*State)(s))
+	return (*Scanner)(s)
 }
 
-// reset resets the scanner to the start of the input stream. It will panic if
+// Reset resets the scanner to the start of the input stream. It will panic if
 // the source reader is not an io.Seeker.
 //
-func (s *State) reset() {
+func (s *Scanner) Reset() {
 	s.queue.count = 0
 	s.queue.head = 0
 	s.queue.tail = 0
@@ -192,12 +177,12 @@ func (s *State) reset() {
 	if err != nil {
 		panic(err)
 	}
-	s.ss, s.se = s.iface.Init(s)
+	s.ss, s.se = s.iface.Init((*State)(s))
 }
 
-// next returns the next token in the input stream.
+// Next returns the next token in the input stream.
 //
-func (s *State) next() (offset int, token Token, literal string) {
+func (s *Scanner) Next() (offset int, token Token, literal string) {
 	for s.count == 0 && !s.abort {
 		var (
 			n, p, pe, eof int
@@ -205,7 +190,7 @@ func (s *State) next() (offset int, token Token, literal string) {
 		)
 
 		if s.sz >= len(s.data) {
-			s.Errorf(0, true, "buffer overrun")
+			(*State)(s).Errorf(0, true, "buffer overrun")
 			break
 		}
 
@@ -223,14 +208,14 @@ func (s *State) next() (offset int, token Token, literal string) {
 		}
 
 	again:
-		p, pe = s.iface.Run(s, p, pe, eof)
+		p, pe = s.iface.Run((*State)(s), p, pe, eof)
 
 		if s.cs == s.se {
 			r, _ := utf8.DecodeRune(s.data[p:])
 			if r == utf8.RuneError {
 				r = rune(s.data[p])
 			}
-			s.Errorf(p, false, "invalid character %#U", r)
+			(*State)(s).Errorf(p, false, "invalid character %#U", r)
 			p++
 			s.cs = s.ss
 			if p < pe {
@@ -252,7 +237,7 @@ func (s *State) next() (offset int, token Token, literal string) {
 		if err != nil {
 			s.abort = true
 			if err != io.EOF {
-				s.Errorf(0, true, err.Error())
+				(*State)(s).Errorf(0, true, err.Error())
 			}
 		}
 	}
@@ -307,9 +292,9 @@ func (s *State) Newline(p int) {
 	s.line++
 }
 
-// pos returns the line/column Position for the given offset.
+// Pos returns the line/column Position for the given offset.
 //
-func (s *State) pos(offset int) Position {
+func (s *Scanner) Pos(offset int) Position {
 	i, j := 0, len(s.lines)
 	for i < j {
 		h := int(uint(i+j) >> 1)
