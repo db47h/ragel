@@ -76,18 +76,19 @@ func scanner(r io.Reader) {
 }
 ```
 
-In this example, the state machine actions just write tokens to stdout. So we
-have quite a lot of scaffolding and a few important things are missing, like a
+In this example, the state machine actions just write tokens to stdout. This is
+a lot of scaffolding and yet a few important things are missing, like a
 convenient way to retrieve the tokens and some mechanism to keep track of line
 and column position for these tokens.
 
+This package provides all the boilerplate code needed to read data from an
+io.Reader, buffering, token position tracking (line and column) and error
+handling and lets you focus on your ragel state machine definition.
+
 ## Implementation
 
-This package all the functionality needed to read data from an io.Reader,
-buffering, token position tracking (line and column) and error handling.
-
-The scanner reads input data in 32KiB chunks (the default buffer size), then
-tokenizes the whole buffer and pushes tokens in a FIFO queue.
+The scanner driver reads input data in 32KiB chunks (the default buffer size),
+then tokenizes the whole buffer and pushes tokens in a FIFO queue.
 
 Note that this limits the size of the largest possible token to about 32767
 bytes (and any token longer than this will not necessarily cause an error).
@@ -250,6 +251,20 @@ func main() {
 ```
 
 That's it.
+
+## Supported Go versions
+
+This package uses the Go modules convention introduced in Go 1.11. The current
+major version is v2, so it should be imported like this:
+
+```go
+    import "github.com/db47h/ragel/v2"
+```
+
+This is supported by Go 1.11, 1.10.4 and 1.9.7.
+
+It might be possible to get it to work with earlier versions using third-party
+package management tools, like dep, but this has not been tested.
 
 ## API
 
