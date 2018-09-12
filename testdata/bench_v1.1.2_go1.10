@@ -1,0 +1,15 @@
+goos: linux
+goarch: amd64
+pkg: github.com/db47h/ragel
+BenchmarkNext-6                	 2000000	       692 ns/op
+BenchmarkNext-6                	 2000000	       703 ns/op
+BenchmarkNext-6                	 2000000	       691 ns/op
+BenchmarkNext-6                	 2000000	       706 ns/op
+BenchmarkNext-6                	 2000000	       709 ns/op
+BenchmarkNext_largeishFile-6   	    1000	   1389624 ns/op
+BenchmarkNext_largeishFile-6   	    1000	   1364113 ns/op
+BenchmarkNext_largeishFile-6   	    1000	   1380674 ns/op
+BenchmarkNext_largeishFile-6   	    1000	   1388639 ns/op
+BenchmarkNext_largeishFile-6   	    1000	   1383743 ns/op
+PASS
+ok  	github.com/db47h/ragel	18.233s
