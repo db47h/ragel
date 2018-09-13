@@ -7,6 +7,9 @@ This package provides a driver for [ragel] based scanners in Go for streamed
 input. It takes care of all the boilerplate code, letting the user focus on
 the ragel state machine definition.
 
+It is only intended for use with ragel machines defined as scanners. See
+[section 6.3 of the ragel guide][ragel-guide].
+
 ## Rationale
 
 Streaming input data to ragel -- i.e. reading from an io.Reader as opposed to
@@ -233,7 +236,9 @@ func main() {
 
 That's it.
 
-## Supported Go versions
+## Supported Go and Ragel versions
+
+### Go
 
 This package uses the Go modules convention introduced in Go 1.11. The current
 major version is v2, so it should be imported like this:
@@ -246,6 +251,25 @@ This is supported by Go 1.11, 1.10.4 and 1.9.7.
 
 It might be possible to get it to work with earlier versions using third-party
 package management tools, like dep, but this has not been tested.
+
+### Ragel
+
+Ragel provides good Go support from version 6.9 onwards.
+
+The development releases (versions 7.x) should be avoided for the time being.
+They have issues with that bit of code in the Go generator:
+
+```go
+    return %%{ write start; }%%, %%{ write error; }%%
+```
+
+If you need to use a 7.x version, just change the write statements like so:
+
+```go
+    return MachineName_start, MachineName_error
+```
+
+where `MachineName` is the FSM name as used in the ragel `machine` statement.
 
 ## Implementation details
 
@@ -348,3 +372,4 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [goreport]: https://goreportcard.com/report/github.com/db47h/ragel
 [goreportb]: https://goreportcard.com/badge/github.com/db47h/ragel
 [codegen]: https://golang.org/s/generatedcode
+[ragel-guide]: http://www.colm.net/files/ragel/ragel-guide-6.10.pdf
