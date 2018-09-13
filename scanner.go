@@ -1,11 +1,10 @@
 // Copyright 2018 Denis Bernard <db047h@gmail.com>
 // Licensed under the MIT license. See license text in the LICENSE file.
 
-// Package ragel provides a thin wrapper for ragel based scanners.
+// Package ragel provides a driver for ragel based scanners.
 //
-// The Scanner type provides all the functionality needed to read data from an
-// io.Reader, buffering, token position tracking (line and column) and error
-// handling.
+// It provides all the functionality needed to read data from an  io.Reader,
+// buffering, token position tracking (line and column) and error handling.
 //
 // The scanner reads input data in 32KiB chunks (the default buffer size), then
 // tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
@@ -13,15 +12,18 @@
 // Note that this limits the size of the largest possible token to about 32767
 // bytes (but any token longer than this will not necessarily cause an error).
 //
-// Error handling is done by returning a ragel.Error token. This can happen in
-// 3 cases: an IO error while reading from the input reader, the input buffer gets
-// full, or an illegal symbol is encountered. In the latter case, scanning
-// resumes at the following byte. The other two are non-recoverable errors; any
-// subsequent call to scanner.Next returns ragel.EOF.
+// Error handling is done by returning a ragel.Error token. This can happen in 4
+// cases:
 //
-// Errors can also be generated from the state machine's actions, in which case the
-// caller decides if an error is fatal or not. For non-fatal errors, callers must
-// update ragel's p variable or issue an appropriate fgoto).
+//	- an IO error while reading from the input reader
+//	- the input buffer gets ful
+//	- an illegal symbol is encountered (i.e. unhandled by the state machine definition)
+//	- a ragel action calls State.Errorf
+//
+// The first two cases are non-recoverable errors; any subsequent call to
+// scanner.Next returns ragel.EOF. For illegal symbols, scanning resumes at the
+// following byte. Actions calling State.Errorf must update ragel's p variable
+// (or issue an appropriate fgoto) for non-fatal errors.
 //
 // UTF8 input is supported via ragel's contib/unicode2ragel.rb.
 // See lang_test.rl for an example use.
@@ -37,29 +39,37 @@ import (
 const bufferSize = 32768
 
 // Interface provides an interface to generated code for a given ragel state
-// machine. The implementation is part of the ragel machine definition file.
+// machine.
 //
-// An idiomatic implementation is as follows:
+// The following canonical implementation must be present it the ragel state
+// machine definition file:
 //
-//	type stub struct {}
+//	type iface struct {}
 //
-//	func (stub) Init(s *ragel.State) (int, int) {
+//	func (iface) Init(s *ragel.State) (int, int) {
 //		var cs, ts, te, act int
 //		%%write init;
 //		s.SaveVars(cs, ts, te, act)
 //		return %%{ write start; }%%, %%{ write error; }%%
 //	}
 //
-//	func (stub) Run(s *ragel.State, p, pe, eof int) (int, int) {
+//	func (iface) Run(s *ragel.State, p, pe, eof int) (int, int) {
 //		cs, ts, te, act, data := s.GetVars()
 //		%%write exec;
 //		s.SaveVars(cs, ts, te, act)
 //		return p, pe
 //	}
 //
+// The actual type name and whether it is public or private do not matter since
+// it is only used by client code in the call to ragel.New:
+//
+//	scanner := ragel.New("stdin", os.Stdin, iface{})
+//
 type Interface interface {
-	Init(s *State) (start, err int)             // Initialize the FSM. Returns the start and error state indices.
-	Run(s *State, p, pe, eof int) (np, npe int) // runs the scanner on the current buffer
+	// Init initializes the FSM. Returns the start and error state indices.
+	Init(s *State) (start, err int)
+	// Run runs the scanner on the current buffer contents.
+	Run(s *State, p, pe, eof int) (np, npe int)
 }
 
 // queue is a FIFO queue.
