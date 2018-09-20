@@ -280,14 +280,14 @@ scanner.Next pops tokens from the queue and refills it as needed.
 
 An alternative to using a queue would be to run the scanning loop in a goroutine
 and use a channel to emit tokens -- like text/template/parse in Go's standard
-library. This approach is however slower than using a queue by an order of
-magnitude (channels are great, just not here).
+library. This approach is however 2 to 5 times slower than using a queue
+(channels are great, just not here). See https://github.com/db47h/ragel/issues/4.
 
 Error handling is done by returning a `ragel.Error` token. This can happen in
 4 cases:
 
 - an IO error while reading from the input reader
-- the input buffer gets ful
+- the input buffer gets full
 - an illegal symbol is encountered (i.e. unhandled by the state machine definition)
 - a ragel action calls `State.Errorf`
 
