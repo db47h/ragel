@@ -9,7 +9,7 @@
 // The scanner reads input data in chunks of 32KiB (the default setting), then
 // tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
 //
-// scanner.Next pops tokens from the queue and refills it as needed.
+// scanner.Next pops tokens from the queue and populates it as needed.
 //
 // Error handling is done by returning a ragel.Error token. This can happen in 4
 // cases:

@@ -276,7 +276,7 @@ where `MachineName` is the FSM name as used in the ragel `machine` statement.
 The scanner reads input data in chunks of 32KiB (the default setting), then
 tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
 
-scanner.Next pops tokens from the queue and refills it as needed.
+scanner.Next pops tokens from the queue and populates it as needed.
 
 An alternative to using a queue would be to run the scanning loop in a goroutine
 and use a channel to emit tokens -- like text/template/parse in Go's standard
