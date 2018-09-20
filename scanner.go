@@ -6,11 +6,10 @@
 // It provides all the functionality needed to read data from an  io.Reader,
 // buffering, token position tracking (line and column) and error handling.
 //
-// The scanner reads input data in 32KiB chunks (the default buffer size), then
+// The scanner reads input data in chunks of 32KiB (the default setting), then
 // tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
 //
-// Note that this limits the size of the largest possible token to about 32767
-// bytes (but any token longer than this will not necessarily cause an error).
+// scanner.Next pops tokens from the queue and refills it as needed.
 //
 // Error handling is done by returning a ragel.Error token. This can happen in 4
 // cases:
@@ -127,6 +126,25 @@ type item struct {
 	lit string
 }
 
+// Option is a scanner Option.
+//
+type Option interface {
+	set(*state)
+}
+
+type optionFn func(*state)
+
+func (f optionFn) set(s *state) { f(s) }
+
+// BufferSize returns an option for scanner.New that sets the input buffer size.
+// The buffer size conditions the size of the longest possible token.
+//
+func BufferSize(size int) Option {
+	return optionFn(func(s *state) {
+		s.bufferSize = size
+	})
+}
+
 // Scanner provides the API for scanner clients.
 //
 type Scanner state
@@ -139,32 +157,40 @@ type State state
 //
 type state struct {
 	queue
-	fileName string
-	r        io.Reader
-	offset   int
-	line     int
-	lines    []int
-	abort    bool
-	iface    Interface
+	fileName   string
+	r          io.Reader
+	offset     int
+	lines      []int
+	iface      Interface
+	bufferSize int
+
 	// ragel state
 	cs, ts, te, act int    // standard ragel variables
 	data            []byte // standard ragel data ptr
 	ss, se          int    // start and error state indices
 	sz              int    // size of unprocessed data
+
+	abort bool
 }
 
 // New returns a new scanner for the given io.Reader and Interface.
 //
 // The Interface implementation must be provided by the ragel generated code.
 //
-func New(fileName string, r io.Reader, iface Interface) *Scanner {
+func New(fileName string, r io.Reader, iface Interface, opts ...Option) *Scanner {
 	s := &state{
-		r:        r,
-		fileName: fileName,
-		data:     make([]byte, bufferSize),
-		lines:    []int{0},
-		iface:    iface,
+		r:          r,
+		fileName:   fileName,
+		lines:      []int{0},
+		iface:      iface,
+		bufferSize: bufferSize,
 	}
+
+	for _, o := range opts {
+		o.set(s)
+	}
+	s.data = make([]byte, s.bufferSize)
+
 	s.ss, s.se = iface.Init((*State)(s))
 	return (*Scanner)(s)
 }
@@ -172,13 +198,12 @@ func New(fileName string, r io.Reader, iface Interface) *Scanner {
 // Reset resets the scanner to the start of the input stream. It will panic if
 // the source reader is not an io.Seeker.
 //
-func (s *Scanner) Reset() {
+func (s *Scanner) Reset(opts ...Option) {
 	s.queue.count = 0
 	s.queue.head = 0
 	s.queue.tail = 0
 	s.abort = false
 	s.offset = 0
-	s.line = 0
 	s.lines = s.lines[:1]
 	s.sz = 0
 
@@ -188,6 +213,13 @@ func (s *Scanner) Reset() {
 		panic(err)
 	}
 	s.ss, s.se = s.iface.Init((*State)(s))
+
+	for _, o := range opts {
+		o.set((*state)(s))
+	}
+	if len(s.data) != s.bufferSize {
+		s.data = make([]byte, s.bufferSize)
+	}
 }
 
 // Next returns the next token in the input stream.
@@ -316,7 +348,6 @@ func (s *State) Errorf(p int, fatal bool, format string, args ...interface{}) {
 //
 func (s *State) Newline(p int) {
 	s.lines = append(s.lines, s.offset+p+1)
-	s.line++
 }
 
 // Pos returns the line/column Position for the given offset.

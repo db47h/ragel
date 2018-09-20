@@ -74,7 +74,11 @@ func BenchmarkNext_largeishFile(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	l := ragel.New("INPUT", r, stub{})
+	fi, err := r.Stat()
+	if err != nil {
+		b.Fatal(err)
+	}
+	l := ragel.New("INPUT", r, stub{}, ragel.BufferSize(int(fi.Size())))
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
