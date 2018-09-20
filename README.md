@@ -310,13 +310,13 @@ ragel directives (like the `%% write exec;` in the above example) and ragel
 generates compilable Go code out of these templates.
 
 The ragel directives `%% write exec;` and `%% write init;` generate code that
-expects a few variables to be accessible in the Go scope where these directives
-appear. As a result, and although the variables names can be customized (they
-could even be struct fields), the ragel state machine definition is tightly
-coupled with the Go code that drives it. In order to have a package that is
-go-gettable and updatable independently of users' own state machine definitions,
-I needed to find a way to minimize the amount of Go code present in a state
-machine definition file.
+expects a few variables to be accessible in the program scope where these
+directives appear. As a result, and although the variables names can be
+customized (they could even be struct fields), the ragel state machine
+definition is tightly coupled with the Go code that drives it. In order to have
+a package that is go-gettable and updatable independently of users' own state
+machine definitions, I needed to find a way to minimize the amount of Go code
+present in a state machine definition file.
 
 Since there is no way around some copy-paste, I came up with the [`ragel.Interface`][Interface]
 interface and a [canonical implementation][Interface] that must be placed in
@@ -326,11 +326,11 @@ possible in order to limit potential bugs and avoid painful updates.
 ### API
 
 The `ragel.Interface` implementation discussed above brings a `*State` instance
-`s`, into the scope of actions in ragel state machine definitions. Actions can
+`s` into the scope of actions in ragel state machine definitions. Actions can
 use its `Emit`, `Errorf` and `Newline` methods. The first two are mostly
 self-explanatory. Users who need accurate line and column tracking must take
-care of calling `Newline` at the right place, especially when ignoring white
-space (see how this is done in the above example).
+care of calling `Newline` at the right places (see how this is done in the above
+example).
 
 The `State.SaveVars` and `State.GetVars` methods manage the standard ragel state
 variables and are only meant to be used by the `ragel.Interface` implementation.

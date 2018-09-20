@@ -35,7 +35,10 @@ import (
 	"unicode/utf8"
 )
 
-const bufferSize = 32768
+// DefaultBufferSize is the default buffer size for a new Scanner. This can be
+// changed at creation time with the BufferSize option.
+//
+const DefaultBufferSize = 32768
 
 // Interface provides an interface to generated code for a given ragel state
 // machine.
@@ -126,7 +129,7 @@ type item struct {
 	lit string
 }
 
-// Option is a scanner Option.
+// Option is a scanner option for New.
 //
 type Option interface {
 	set(*state)
@@ -136,7 +139,7 @@ type optionFn func(*state)
 
 func (f optionFn) set(s *state) { f(s) }
 
-// BufferSize returns an option for scanner.New that sets the input buffer size.
+// BufferSize returns an Option that sets the input buffer size.
 // The buffer size conditions the size of the longest possible token.
 //
 func BufferSize(size int) Option {
@@ -183,7 +186,7 @@ func New(fileName string, r io.Reader, iface Interface, opts ...Option) *Scanner
 		fileName:   fileName,
 		lines:      []int{0},
 		iface:      iface,
-		bufferSize: bufferSize,
+		bufferSize: DefaultBufferSize,
 	}
 
 	for _, o := range opts {
