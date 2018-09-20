@@ -15,7 +15,7 @@
 // cases:
 //
 //	- an IO error while reading from the input reader
-//	- the input buffer gets ful
+//	- the input buffer gets full
 //	- an illegal symbol is encountered (i.e. unhandled by the state machine definition)
 //	- a ragel action calls State.Errorf
 //
