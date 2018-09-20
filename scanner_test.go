@@ -55,10 +55,15 @@ func BenchmarkNext(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		l.Reset()
+	Loop:
 		for {
-			_, tok, _ := l.Next()
-			if tok == ragel.EOF || tok == ragel.Error {
-				break
+			o, tok, v := l.Next()
+			switch tok {
+			case ragel.Error:
+				b.Fatalf("parse failed: %s: %s", l.Pos(o), v)
+				fallthrough
+			case ragel.EOF:
+				break Loop
 			}
 		}
 	}
@@ -74,10 +79,15 @@ func BenchmarkNext_largeishFile(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		l.Reset()
+	Loop:
 		for {
-			_, tok, _ := l.Next()
-			if tok == ragel.EOF || tok == ragel.Error {
-				break
+			o, tok, v := l.Next()
+			switch tok {
+			case ragel.Error:
+				b.Fatalf("parse failed: %s: %s", l.Pos(o), v)
+				fallthrough
+			case ragel.EOF:
+				break Loop
 			}
 		}
 	}

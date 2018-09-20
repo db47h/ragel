@@ -200,7 +200,7 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 		)
 
 		if s.sz >= len(s.data) {
-			(*State)(s).Errorf(0, true, "buffer overrun")
+			(*State)(s).Errorf(0, true, "token too long")
 			break
 		}
 
@@ -213,7 +213,7 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 		}
 		pe = p + n
 		eof = -1
-		if n == 0 || err == io.EOF {
+		if err != nil {
 			eof = pe
 		}
 
@@ -221,19 +221,36 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 		p, pe = s.iface.Run((*State)(s), p, pe, eof)
 
 		if s.cs == s.se {
-			r, _ := utf8.DecodeRune(s.data[p:])
+			// error state: s.data[p:] did not match any rule. Report s.data[p]
+			// as invalid and resume scanning past it.
+			r, sz := utf8.DecodeRune(s.data[p:pe])
 			if r == utf8.RuneError {
 				r = rune(s.data[p])
 			}
 			(*State)(s).Errorf(p, false, "invalid character %#U", r)
-			p++
+			p += sz
+			s.ts, s.te = p, p
 			s.cs = s.ss
 			if p < pe {
 				goto again
 			}
 		}
 
-		if s.ts == 0 {
+		// iface.Run() sets ts to 0 in the start state and before checking if p == pe:
+		//
+		//	StartState:
+		//	ts = 0
+		//	if p == pe {
+		//		return
+		//	}
+		//
+		// as a result it is only safe to assume that the whole buffer has been
+		// parsed and s.sz can only be set to 0 if s.cs = s.ss (start state).
+		// Otherwise we just go on with the else clause which is a no-op if
+		// pe == len(data) and will trigger the buffer overflow check at the top
+		// of the loop.
+		//
+		if s.ts == 0 && s.cs == s.ss {
 			s.sz = 0
 			s.offset += p
 		} else {
@@ -288,7 +305,7 @@ func (s *State) Emit(ts int, typ Token, value string) {
 // form the tokens's literal value.
 //
 func (s *State) Errorf(p int, fatal bool, format string, args ...interface{}) {
-	if !s.abort && fatal {
+	if fatal {
 		s.abort = true
 	}
 	s.push(item{off: s.offset + p, tok: Error, lit: fmt.Sprintf(format, args...)})
