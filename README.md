@@ -273,11 +273,10 @@ where `MachineName` is the FSM name as used in the ragel `machine` statement.
 
 ## Implementation details
 
-The scanner driver reads input data in 32KiB chunks (the default buffer size),
-then tokenizes the whole buffer and pushes tokens in a FIFO queue.
+The scanner reads input data in chunks of 32KiB (the default setting), then
+tokenizes the whole buffer and pushes the tokens found in a FIFO queue.
 
-Note that this limits the size of the largest possible token to about 32767
-bytes (and any token longer than this will not necessarily cause an error).
+scanner.Next pops tokens from the queue and refills it as needed.
 
 An alternative to using a queue would be to run the scanning loop in a goroutine
 and use a channel to emit tokens -- like text/template/parse in Go's standard
