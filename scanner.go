@@ -234,22 +234,28 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 			err           error
 		)
 
-		if s.sz >= len(s.data) {
-			(*State)(s).Errorf(0, true, "token too long")
-			break
-		}
-
 		p = s.sz
-		for {
-			n, err = s.r.Read(s.data[p:])
-			if n != 0 || err != nil {
+		if p < len(s.data) {
+			for {
+				n, err = s.r.Read(s.data[p:])
+				if n != 0 || err != nil {
+					break
+				}
+			}
+			pe = p + n
+			eof = -1
+			if err != nil {
+				eof = pe
+			}
+		} else {
+			// input buffer overrun. Attempt a one byte read to check for EOF
+			// also fail if we managed to read any data
+			n, err = s.r.Read([]byte{0})
+			if err == nil || n > 0 {
+				(*State)(s).Errorf(0, true, "token too long")
 				break
 			}
-		}
-		pe = p + n
-		eof = -1
-		if err != nil {
-			eof = pe
+			pe, eof = p, p
 		}
 
 	again:

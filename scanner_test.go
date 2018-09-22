@@ -6,6 +6,7 @@ package ragel_test
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -95,5 +96,63 @@ func BenchmarkNext_largeishFile(b *testing.B) {
 				break Loop
 			}
 		}
+	}
+}
+
+func Test_issues(t *testing.T) {
+	type tok struct {
+		off int
+		tok ragel.Token
+		lit string
+	}
+	tests := map[string]struct {
+		file string
+		in   io.Reader
+		opts []ragel.Option
+		exp  []tok
+	}{
+		"5_string": {
+			in:   strings.NewReader("42"),
+			opts: []ragel.Option{ragel.BufferSize(2)},
+			exp: []tok{
+				{0, Int, "42"},
+				{2, ragel.EOF, "EOF"},
+			},
+		},
+		"5_file": {
+			file: "testdata/issues/issue5.input",
+			opts: []ragel.Option{ragel.BufferSize(2)},
+			exp: []tok{
+				{0, Int, "42"},
+				{2, ragel.EOF, "EOF"},
+			},
+		},
+	}
+	for n, issue := range tests {
+		t.Run(fmt.Sprintf("#%s", n), func(t *testing.T) {
+			var (
+				fn string
+				in io.Reader
+			)
+			if issue.file != "" {
+				f, err := os.Open(issue.file)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer f.Close()
+				fn = issue.file
+				in = f
+			} else {
+				fn = "string"
+				in = issue.in
+			}
+			s := ragel.New(fn, in, stub{}, issue.opts...)
+			for _, e := range issue.exp {
+				off, tok, lit := s.Next()
+				if off != e.off || tok != e.tok || lit != e.lit {
+					t.Fatalf("Expected %s: %d %q. Got: %s: %d %q", s.Pos(e.off), e.tok, e.lit, s.Pos(off), tok, lit)
+				}
+			}
+		})
 	}
 }
