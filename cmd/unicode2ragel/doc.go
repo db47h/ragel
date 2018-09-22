@@ -50,19 +50,55 @@ Supported unicode character categories
 
 unicode2ragel supports the following unicode character categories:
 
-	Other:  unicode.C,
-	Letter: unicode.L,
-	Lower:  unicode.Ll,
-	Title:  unicode.Lt,
-	Upper:  unicode.Lu,
-	Mark:   unicode.M,
-	Number: unicode.N,
-	Digit:  unicode.Nd,
-	Punct:  unicode.P,
-	Symbol: unicode.S,
-	Space:  unicode.Z,
+	Digit  :  Alias for category Nd
+	Letter :  Alias for category L
+	Lower  :  Alias for category Ll
+	Mark   :  Alias for category M
+	Number :  Alias for category N
+	Other  :  Alias for category C
+	Punct  :  Alias for category P
+	Space  :  Alias for category Z
+	Symbol :  Alias for category S
+	Title  :  Alias for category Lt
+	Upper  :  Alias for category Lu
+	C      :  Other
+	Cc     :  Other, control
+	Cf     :  Other, format
+	Co     :  Other, private use
+	Cs     :  Other, surrogate
+	L      :  Letter
+	Ll     :  Letter, lowercase
+	Lm     :  Letter, modifier
+	Lo     :  Letter, other
+	Lt     :  Letter, titlecase
+	Lu     :  Letter, uppercase
+	M      :  Mark
+	Mc     :  Mark, spacing combining
+	Me     :  Mark, enclosing
+	Mn     :  Mark, nonspacing
+	N      :  Number
+	Nd     :  Number, decimal digit
+	Nl     :  Number, letter
+	No     :  Number, other
+	P      :  Punct
+	Pc     :  Punct, connector
+	Pd     :  Punct, dash
+	Pe     :  Punct, close
+	Pf     :  Punct, final quote
+	Pi     :  Punct, initial quote
+	Po     :  Punct, other
+	Ps     :  Punct, open
+	S      :  Symbol
+	Sc     :  Symbol, currency
+	Sk     :  Symbol, modifier
+	Sm     :  Symbol, math
+	So     :  Symbol, other
+	Z      :  Separator
+	Zl     :  Separator, line
+	Zp     :  Separator, paragraph
+	Zs     :  Separator, space
 
-Additionally, all categories from the unicode.Categories map are supported.
+When specifying categories on the command line, the case does matter.
 
 
 Example
@@ -86,8 +122,8 @@ Here's an excerpt from the generated file:
 			;
 	}%%
 
-The "uletter" state machine can the be used to match utf8 input sequences that
-match characters in the unicode L category:
+The "uletter" state machine can then be used to match UTF-8 input sequences for
+characters in the unicode L category:
 
 	%%{
 		machine lang;
