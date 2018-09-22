@@ -77,7 +77,7 @@ Here's an excerpt from the generated file:
 	%%{
 		machine UTF8;
 		uletter =
-			0x41..0x5A
+			  0x41..0x5A
 			| 0x61..0x7A
 			| 0xC2 0xAA
 			# … lots of rules removed for brevity …
