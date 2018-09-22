@@ -10,7 +10,7 @@ LATEST="testdata/bench_@latest_$GOVER"
 
 if [ ! -f "$PREV" ]; then
     git mv "$LATEST" "$PREV"
-    go test -run '^$' -bench . -count 5 > "$LATEST"
 fi
 
+go test -run '^$' -bench . -count 5 > "$LATEST"
 benchstat "$PREV" "$LATEST"
