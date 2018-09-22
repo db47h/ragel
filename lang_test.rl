@@ -21,7 +21,7 @@ const (
 	#state machine definition for your language
 
 	machine lang;
-	include WChar "contrib/utf8.rl";
+	include UTF8 "utf8.rl";
 
 	newline = '\n' @{ s.Newline(p) };
 	any_count_line = any | newline;
@@ -32,10 +32,10 @@ const (
 	main := |*
 
 	# Alpha numberic characters or underscore.
-	alnum_u = ualnum | '_';
+	alnum_u = uletter | digit | '_';
 
 	# Alpha charactres or underscore.
-	alpha_u = ualpha | '_';
+	alpha_u = uletter | '_';
 
 	# Symbols. Upon entering clear the buffer. On all transitions
 	# buffer a character. Upon leaving dump the symbol.
@@ -73,13 +73,13 @@ const (
 
 	# Match an integer. We don't bother clearing the buf or filling it.
 	# The float machine overlaps with int and it will do it.
-	udigit+ {
+	digit+ {
         	s.Emit(ts, Int, string(data[ts:te]))
 	};
 
 	# Match a float. Upon entering the machine clear the buf, buffer
 	# characters on every trans and dump the float upon leaving.
-	udigit+ '.' udigit+ {
+	digit+ '.' digit+ {
         	s.Emit(ts, Float, string(data[ts:te]))
 	};
 
