@@ -45,6 +45,8 @@ The state machine name will be of the form:
 
 where categoryName is the name as specified on the command line.
 
+unicode2ragel additionally defines a machine named "uany" that matches any valid
+UTF-8 encoding (which do not necessarily match assigned unicode code points).
 
 Supported unicode character categories
 
