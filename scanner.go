@@ -3,7 +3,7 @@
 
 // Package ragel provides a driver for ragel based scanners.
 //
-// It provides all the functionality needed to read data from an  io.Reader,
+// It provides all the functionality needed to read data from an io.Reader,
 // buffering, token position tracking (line and column) and error handling.
 //
 // The scanner reads input data in chunks of 32KiB (the default setting), then
@@ -261,52 +261,49 @@ func (s *Scanner) Next() (offset int, token Token, literal string) {
 	again:
 		p, pe = s.iface.Run((*State)(s), p, pe, eof)
 
-		if s.cs == s.se {
+		switch s.cs {
+		case s.se:
 			// error state: s.data[p:] did not match any rule. Report s.data[p]
 			// as invalid and resume scanning past it.
-			r, sz := utf8.DecodeRune(s.data[p:pe])
+			r, rs := utf8.DecodeRune(s.data[p:pe])
 			if r == utf8.RuneError {
 				r = rune(s.data[p])
 			}
 			(*State)(s).Errorf(p, false, "invalid character %#U", r)
-			p += sz
-			s.ts, s.te = p, p
+			p += rs
 			s.cs = s.ss
 			if p < pe {
 				goto again
 			}
-		}
-
-		// iface.Run() sets ts to 0 in the start state and before checking if p == pe:
-		//
-		//	StartState:
-		//	ts = 0
-		//	if p == pe {
-		//		return
-		//	}
-		//
-		// as a result it is only safe to assume that the whole buffer has been
-		// parsed and s.sz can only be set to 0 if s.cs = s.ss (start state).
-		// Otherwise we just go on with the else clause which is a no-op if
-		// pe == len(data) and will trigger the buffer overflow check at the top
-		// of the loop.
-		//
-		if s.ts == 0 && s.cs == s.ss {
+			// we're at the end of the buffer, reload buffer
+			fallthrough
+		case s.ss:
+			// start state: reload whole buffer
 			s.sz = 0
 			s.offset += p
-		} else {
-			s.offset += s.ts
-			s.sz = pe - s.ts
-			copy(s.data[:], s.data[s.ts:pe])
-			s.te -= s.ts
-			s.ts = 0
+		default:
+			// there's a partially scanned token at the end of the buffer
+			if s.ts > 0 {
+				s.offset += s.ts
+				s.sz = pe - s.ts
+				copy(s.data[:], s.data[s.ts:pe])
+				s.te -= s.ts
+				s.ts = 0
+			} else {
+				// the token starts at the beginning of the buffer, possible
+				// buffer overflow.
+				s.sz = pe
+			}
 		}
 
 		if err != nil {
 			s.abort = true
 			if err != io.EOF {
-				(*State)(s).Errorf(0, true, err.Error())
+				(*State)(s).Errorf(s.sz, true, err.Error())
+			} else if s.cs != s.ss {
+				(*State)(s).Errorf(0, true, "non-terminated token: unexpected EOF")
 			}
+			s.offset += s.sz
 		}
 	}
 

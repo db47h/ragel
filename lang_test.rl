@@ -24,7 +24,7 @@ const (
 	include UTF8 "utf8.rl";
 
 	newline = '\n' @{ s.Newline(p) };
-	any_count_line = any | newline;
+	any_count_line = uany | newline;
 
 	# Consume a C comment.
 	c_comment := any_count_line* :>> '*/' @{fgoto main;};
@@ -51,9 +51,12 @@ const (
 
 	# Single Quote.
 	sliteralChar = [^'\\] | newline | ( '\\' . any_count_line );
-	'\'' . sliteralChar* . '\'' {
-        	s.Emit(ts, Char, string(data[ts:te]))
-	};
+	'\'' . sliteralChar* . '\''
+	@err{
+		s.Errorf(ts, false, "non-terminated single-quote")
+		fhold; fgoto main;
+	}
+	{ s.Emit(ts, Char, string(data[ts:te])) };
 
 	# Double Quote.
 	dliteralChar = [^"\\] | newline | ( '\\' any_count_line );

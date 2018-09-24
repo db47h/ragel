@@ -15,7 +15,7 @@ import (
 )
 
 func TestNext(t *testing.T) {
-	input := "\x88a = 4;\nçcc = xyz + 17.0\n\x81"
+	input := "\x88a = 4;\nçcc = xyz + 17.0\n'x'\n\x81"
 	r := strings.NewReader(input)
 	l := ragel.New("", r, stub{})
 
@@ -34,9 +34,10 @@ func TestNext(t *testing.T) {
 		{":2:8", Ident, "xyz"},
 		{":2:12", Symbol, "+"},
 		{":2:14", Float, "17.0"},
-		{":3:1", ragel.Error, "invalid character U+0081"},
-		{":3:2", ragel.EOF, "EOF"},
-		{":3:2", ragel.EOF, "EOF"},
+		{":3:1", Char, "'x'"},
+		{":4:1", ragel.Error, "invalid character U+0081"},
+		{":4:2", ragel.EOF, "EOF"},
+		{":4:2", ragel.EOF, "EOF"},
 	}
 
 	for i := 0; i < len(res); i++ {
@@ -124,6 +125,35 @@ func Test_issues(t *testing.T) {
 			opts: []ragel.Option{ragel.BufferSize(2)},
 			exp: []tok{
 				{0, Int, "42"},
+				{2, ragel.EOF, "EOF"},
+			},
+		},
+		"6_with_handler": {
+			in: strings.NewReader("'"),
+			exp: []tok{
+				{0, ragel.Error, "non-terminated single-quote"},
+				{1, ragel.EOF, "EOF"},
+			},
+		},
+		"6_large_buffer": {
+			in: strings.NewReader("\""),
+			exp: []tok{
+				{0, ragel.Error, "non-terminated token: unexpected EOF"},
+				{1, ragel.EOF, "EOF"},
+			},
+		},
+		"6_short_buffer": {
+			in:   strings.NewReader("\""),
+			opts: []ragel.Option{ragel.BufferSize(1)},
+			exp: []tok{
+				{0, ragel.Error, "non-terminated token: unexpected EOF"},
+				{1, ragel.EOF, "EOF"},
+			},
+		},
+		"6_invalid_char": {
+			in: strings.NewReader("'\x81"),
+			exp: []tok{
+				{0, ragel.Error, "non-terminated single-quote"},
 				{2, ragel.EOF, "EOF"},
 			},
 		},
