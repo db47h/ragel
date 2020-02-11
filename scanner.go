@@ -117,8 +117,8 @@ type Token int
 // Token types.
 //
 const (
-	Error Token = -2 + iota
-	EOF
+	EOF Token = -1 - iota
+	Error
 )
 
 // An item wraps a token with its position and literal value.
