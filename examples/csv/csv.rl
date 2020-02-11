@@ -2,7 +2,7 @@
 
 package main
 
-import "github.com/db47h/ragel"
+import "github.com/db47h/ragel/v2"
 
 %%{
 	machine csv;
@@ -46,24 +46,21 @@ import "github.com/db47h/ragel"
 
 %%write data nofinal;
 
+type csv struct{}
+
 // here we use a private implemetation for ragel.FSM since the scanner and
 // parser are in the same package.
 //
-type fsm struct {}
-
-func (fsm) Init(s *ragel.Scanner) {
+func (csv) Init(s *ragel.State) (int, int) {
 	var cs, ts, te, act int
 	%%write init;
-	s.SetState(cs, ts, te, act)
-}
-
-func (fsm) States() (start, err int) {
+	s.SaveVars(cs, ts, te, act)
 	return %%{ write start; }%%, %%{ write error; }%%
 }
 
-func (fsm) Run(s *ragel.Scanner, p, pe, eof int) (int, int) {
-	cs, ts, te, act, data := s.GetState()
+func (csv) Run(s *ragel.State, p, pe, eof int) (int, int) {
+	cs, ts, te, act, data := s.GetVars()
 	%%write exec;
-	s.SetState(cs, ts, te, act)
+	s.SaveVars(cs, ts, te, act)
 	return p, pe
 }
