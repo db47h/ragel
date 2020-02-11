@@ -3,8 +3,6 @@
 [![godocb]][godoc]
 [![goreportb]][goreport]
 
-**Obsolete Branch: please use the v2 branch** 
-
 This package provides a driver for [ragel] based scanners in Go for streamed
 input. It takes care of all the boilerplate code, letting the user focus on
 the ragel state machine definition.
