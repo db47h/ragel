@@ -1,6 +1,6 @@
 goos: linux
 goarch: amd64
-pkg: github.com/db47h/ragel
+pkg: github.com/db47h/ragel/v2
 BenchmarkNext-6                	 2000000	       644 ns/op
 BenchmarkNext-6                	 2000000	       608 ns/op
 BenchmarkNext-6                	 3000000	       607 ns/op
