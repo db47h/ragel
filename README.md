@@ -378,9 +378,9 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 [ragel]: http://www.colm.net/open-source/ragel/
-[godoc]: https://godoc.org/github.com/db47h/ragel
+[godoc]: https://pkg.go.dev/github.com/db47h/ragel/v2?tab=doc
 [Interface]: https://godoc.org/github.com/db47h/ragel#Interface
-[godocb]: https://godoc.org/github.com/db47h/ragel?status.svg
+[godocb]: https://img.shields.io/badge/go.dev-reference-blue
 [goreport]: https://goreportcard.com/report/github.com/db47h/ragel
 [goreportb]: https://goreportcard.com/badge/github.com/db47h/ragel
 [codegen]: https://golang.org/s/generatedcode
